@@ -53625,6 +53625,7 @@ function g8(x, l) {
           , zt = cm(Bt)
           , {tile: hr, pixel: kt} = w(T).latLonToTileAndPixel(at, ht, l.pixelArtZoom)
           , xt = w(T).latLonToRegionAndPixel(at, ht, l.pixelArtZoom);
+        window.setCurrentTileAndPixel(hr, kt);
         return {
             bounds: Bt,
             center: zt,
@@ -55731,7 +55732,8 @@ function bL(x, l) {
                                 token: yi,
                                 time: Date.now()
                             }
-                            window.setCaptchaContext(aa.captcha, async () => {
+                            window.setWplaceBotHook(aa.captcha, Vt.charges, async () => {
+                                //w(T).latLonToTileAndPixel(at, ht, l.pixelArtZoom);
                                 console.log("Reset the captcha");
                                 aa.captcha = void 0;
                             });

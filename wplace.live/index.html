@@ -10,13 +10,62 @@
 
             const CAPTCHA_CONTEXT_IDENT = "GLOBAL_CAPTCHA_CONTEXT_IDENT";
             const CAPTCHA_CALLBACK_IDENT = "GLOBAL_CAPTCHA_CALLBACK_IDENT";
-            const fetchApi = async (path, ...params) => fetch(BASE_URL + path, ...params);
+			const CURRENT_TILE_IDENT = "CURRENT_TILE_IDENT";
+			const CURRENT_PIXEL_IDENT = "CURRENT_PIXEL_IDENT";
+			const START_POINT_IDENT = "START_POINT_IDENT";
+			
+			window[START_POINT_IDENT] = JSON.parse(localStorage.getItem("wplaceBotStartPoint"));
+
+			const wplaceBotState = {
+				running: false,
+				paintedCount: 0,
+				charges: { count: 0, max: 80, cooldownMs: 30000 },
+				userInfo: null,
+				lastPixel: null,
+			};
+			
+            const fetchApi = async (path, params = {}) => fetch(BASE_URL + path, { credentials: 'include', ...params });
             const getCaptchaContext = () => window[CAPTCHA_CONTEXT_IDENT];
-            const setCaptchaContext = (context, callback) => {
+            const setWplaceBotHook = (context, charges, callback) => {
+				wplaceBotState.charges.count = charges; // Update the charges count
                 window[CAPTCHA_CONTEXT_IDENT] = context;
                 window[CAPTCHA_CALLBACK_IDENT] = callback;
-                console.log("Set captcha context");
+                console.log("Set captcha context, current charges:", charges);
             };
+
+			const setCurrentTileAndPixel = (tile, pixel) => {
+				window[CURRENT_TILE_IDENT] = tile;
+				window[CURRENT_PIXEL_IDENT] = pixel;
+				console.log("Set current tile and pixel:", tile, pixel);
+			};
+			const getCurrentTileAndPixel = () => {
+				if (!window[CURRENT_PIXEL_IDENT] || !window[CURRENT_TILE_IDENT]) {
+					return null;
+				}
+
+				return {
+					tile: { x: window[CURRENT_TILE_IDENT][0], y: window[CURRENT_TILE_IDENT][1] },
+					pixel: { x: window[CURRENT_PIXEL_IDENT][0], y: window[CURRENT_PIXEL_IDENT][1] }
+				};
+			};
+
+			const fetchCharge = async () => {
+				let data = await fetchApi('/me');
+				if (data.ok) {
+					data = await data.json();
+					console.log("Fetched user info:", data);
+					wplaceBotState.userInfo = data;
+					wplaceBotState.charges = {
+						count: Math.floor(data.charges.count),
+						max: Math.floor(data.charges.max),
+						cooldownMs: data.charges.cooldownMs
+					};
+				} else {
+					console.error("WplaceBot: Failed to fetch user info.")
+				}
+			};
+
+			fetchCharge();
 
             const isContextReady = () => Boolean(getCaptchaContext());
 
@@ -39,15 +88,186 @@
 
                 console.log("Sending paint request...")
 
-                await fetchApi(`/s${SESSION}/pixel/${chunk.x}/${chunk.y}`, {
+                const response = await fetchApi(`/s${SESSION}/pixel/${chunk.x}/${chunk.y}`, {
                     method: "POST",
-                    body: JSON.stringify(payload),
-                    credentials: "include",
+                    body: JSON.stringify(payload)
                 });
                 await window[CAPTCHA_CALLBACK_IDENT]();
 				window[CAPTCHA_CONTEXT_IDENT] = null;
+
+				return response;
             }
-            window.setCaptchaContext = setCaptchaContext;
+            window.setWplaceBotHook = setWplaceBotHook;
+			window.setCurrentTileAndPixel = setCurrentTileAndPixel;
+
+
+			const getPixelsFromBase64 = async (base64Url) => {
+				return new Promise((resolve, reject) => {
+					const img = new Image();
+					img.onload = function () {
+						const canvas = document.createElement("canvas");
+						canvas.width = img.width;
+						canvas.height = img.height;
+						const ctx = canvas.getContext("2d");
+
+						ctx.drawImage(img, 0, 0);
+						const imageData = ctx.getImageData(0, 0, img.width, img.height);
+
+						resolve({
+							pixels: imageData.data,
+							width: img.width,
+							height: img.height
+						});
+					};
+
+					img.onerror = function () {
+						reject(new Error("Failed to load image."));
+					};
+
+					img.src = base64Url;
+				});
+			};
+
+			const getChunkPixels = async ({ x, y }) => {
+				const response = await fetch(BASE_URL + `/files/s${SESSION}/tiles/${x}/${y}.png`);
+				if (!response.ok) {
+					console.error("Could not fetch the chunk at:", x, y);
+					return null;
+				}
+				console.log(`Fetched the chunk png at x: ${x} y: ${y}`);
+
+				// Convert stream to Blob
+				const blob = await response.blob();
+
+				// Decode the PNG
+				const imageBitmap = await createImageBitmap(blob);
+
+				// Draw on an offscreen canvas to read pixels
+				const canvas = document.createElement('canvas');
+				canvas.width = imageBitmap.width;
+				canvas.height = imageBitmap.height;
+				const ctx = canvas.getContext('2d');
+				ctx.drawImage(imageBitmap, 0, 0);
+
+				// Extract pixel data (RGBA)
+				const { data: pixels } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+				return {
+					pixels,              
+					width: canvas.width,
+					height: canvas.height
+				};
+			};
+
+			const findNearestColorId = (c) => {
+				for (const [id, color] of Object.entries(ALL_COLORS_BY_ID)) {
+					if (c.r === color.r && c.g === color.g && c.b === color.b) {
+						return id;
+					}
+				}
+
+				return null;
+			}
+
+			const startWplaceBot = async ({ width, height }, imageUrl) => {
+				console.log("Starting Wplace Bot...");
+				
+				const startPoint = window[START_POINT_IDENT] ? window[START_POINT_IDENT] : getCurrentTileAndPixel();
+
+				if (!startPoint) {
+					console.error("Wplacebot: Select a point on the map to start the bot");
+					wplaceBotState.running = false;
+					return;
+				}
+				
+				localStorage.setItem("wplaceBotStartPoint", JSON.stringify(startPoint));
+				try {
+				while (wplaceBotState.running) {
+
+					// First wait for the captcha and charge to paint.
+					while (!isContextReady() && wplaceBotState.charges.count === 0 && wplaceBotState.running) {
+						await new Promise(resolve => setTimeout(resolve, 100));
+					}
+					if (!wplaceBotState.running) {
+						break;
+					}
+
+					// Then get the current chunk. We will place the pixels based on this information.
+					const chunk = await getChunkPixels(startPoint.tile);
+
+					// Then rasterize our image and get the pixel data.
+					const image = await getPixelsFromBase64(imageUrl);
+
+					let coords = [];
+					let colors = [];
+
+					let x = 0;
+					let y = 0;
+
+					let charges = wplaceBotState.charges.count;
+
+					// Add the points we will paint.
+					while (charges >= 0) {
+						const imageR = image.pixels[(x + image.width * y) * 4];
+						const imageG = image.pixels[(x + image.width * y) * 4 + 1];
+						const imageB = image.pixels[(x + image.width * y) * 4 + 2];
+						const imageA = image.pixels[(x + image.width * y) * 4 + 3];
+
+						const chunkR = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4];
+						const chunkG = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 1];
+						const chunkB = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 2];
+						const chunkA = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 3];
+
+						x += 1;
+						if (x >= image.width) {
+							x = 0;
+							y += 1;
+							if (y >= image.height) {
+								console.log("Wplace bot finished!. Now on bot will maintain the current image");
+								break;
+							}
+						}
+
+						if (imageA === 0) {
+							continue;
+						}
+
+						const newPixelId = findNearestColorId({ r: imageR, g: imageG, b: imageB });
+						if (!newPixelId || newPixelId === "0") {
+							console.error("Wplace bot: input image had invalid colors.");
+							// Skip this pixel.
+							continue;
+						}
+						const oldPixelId = findNearestColorId({ r: chunkR, g: chunkG, b: chunkB });
+						if (oldPixelId === newPixelId) {
+							// We don't have to color this pixel.
+							// Its already been colored.
+							continue;
+						}
+						
+						coords.push(x + startPoint.pixel.x, y + startPoint.pixel.y);
+						colors.push(parseInt(newPixelId, 10));
+
+						charges -= 1;
+						if (coords.length > 20) {
+							break;
+						}
+					}
+
+					console.log("Paint: ", coords, " ", colors);
+					// Finally paint.
+					const response = await hookPaint(startPoint.tile, coords, colors);
+
+					if (!response.ok) {
+						console.error("WplaceBot: Error paint request rejected.");
+					}
+				}
+				} catch(exception) {
+					console.error(exception);
+				}
+
+				console.log("Wplace Bot stopped.");
+			}
         </script>
 	
 		<link href="./_app/immutable/assets/0.DlGU2TSy.css" rel="stylesheet">
@@ -119,7 +339,7 @@
 
 <body data-sveltekit-preload-data="hover">
 	<div style="display: contents">
-		                <div id="myCollapsible" data-collapsed="false" style="position:fixed;top:50px;left:50px;z-index:9999;border:1px solid #e5e7eb;border-radius:10px;padding:8px;width:100%;max-width:400px;box-shadow:0 4px 14px rgba(16,24,40,0.04);font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
+	<div id="myCollapsible" data-collapsed="false" style="position:fixed;top:50px;left:50px;z-index:9999;border:1px solid #e5e7eb;border-radius:10px;padding:8px;width:100%;max-width:400px;box-shadow:0 4px 14px rgba(16,24,40,0.04);font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
             <div id="dragHeader" style="display:flex;align-items:center;gap:10px;user-select:none;padding:6px 4px;background:#f3f4f6;border-radius:8px;">
                 <svg id="chev" style="width:18px;height:18px;display:inline-block;transition:transform .18s ease;transform-origin:center;color:#2563eb;" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -142,11 +362,33 @@
                     <span>Height (px)</span>
                     <input id="pxH" type="number" min="1" placeholder="height px" style="font-size:13px;padding:6px 8px;border:1px solid #e6edf3;border-radius:8px;background:#fcfdff;outline:none;"/>
                 </label>
-                <button id="applyBtn" style="padding:8px 12px;border-radius:10px;border:none;background:#2563eb;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,0.12);">Apply</button>
-            </div>
+				<div style="display: flex; gap: 10px;">
+					<label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+						<span>Pixel Count</span>
+						<input id="pxCount" type="number" min="1" placeholder="pixel count" 
+							style="font-size: 13px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;" readonly/>
+					</label>
+
+					<label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+						<span>Total Time</span>
+						<input id="totalTimeInput" min="1" placeholder="total time" 
+							style="font-size: 11px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;" readonly/>
+					</label>
+				</div>
+
+                <button id="startBtn" style="padding:8px 12px;border-radius:10px;border:none;background:#2563eb;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,0.12);">Start</button>
+			</div>
         </div>
-        <script src="https://cdn.jsdelivr.net/gh/cancanakci/diHter@main/dither.js"></script>
         <script>
+			// Add the dihter script.
+			fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
+			.then(res => res.text())
+			.then(code => {
+				const script = document.createElement("script");
+				script.textContent = code;
+				document.body.appendChild(script);
+			})
+			.catch(err => console.error("Failed to load script:", err));
             (function() {
                 const container = document.getElementById('myCollapsible');
                 const header = document.getElementById('dragHeader');
@@ -154,7 +396,9 @@
                 const fileInput = document.getElementById('imageInput');
                 const wInput = document.getElementById('pxW');
                 const hInput = document.getElementById('pxH');
-                const applyBtn = document.getElementById('applyBtn');
+				const pxCountInput = document.getElementById('pxCount');
+				const totalTimeInput = document.getElementById('totalTimeInput');
+                const startBtn = document.getElementById('startBtn');
                 let isDragging = false
                   , offsetX = 0
                   , offsetY = 0
@@ -246,6 +490,18 @@
                     return isWidthValid && isHeightValid;
                 }
 
+				function toTimeString(totalMinutes) {
+					var days    = Math.floor(totalMinutes / 1440); // 1440 minutes in a day
+					var hours   = Math.floor((totalMinutes % 1440) / 60);
+					var minutes = totalMinutes % 60;
+
+					if (hours   < 10) { hours   = "0" + hours; }
+					if (minutes < 10) { minutes = "0" + minutes; }
+
+					return days + " days " + hours + " hours " + minutes + " minutes";
+				}
+
+
                 async function performDither() {
                     if (!originalImageUrl) {
                         previewImg.src = '';
@@ -261,6 +517,9 @@
 
                     const w = parseInt(wInput.value, 10);
                     const h = parseInt(hInput.value, 10);
+					const pxCount = w * h;
+					pxCountInput.value = pxCount;
+					totalTimeInput.value = toTimeString(pxCount / 2);
 
                     container.style.border = '1px solid #e5e7eb';
 
@@ -279,8 +538,6 @@
                 fileInput.addEventListener('change', (e) => {
                     const file = e.target.files && e.target.files[0];
                     if (!file) {
-                        originalImageUrl = null;
-                        performDither();
                         return;
                     }
 
@@ -307,11 +564,15 @@
                 wInput.addEventListener('change', validateInputs);
                 hInput.addEventListener('change', validateInputs);
 
-                applyBtn.addEventListener('click', () => {
+                startBtn.addEventListener('click', () => {
                     if (validateInputs()) {
-                        console.log('Apply button clicked! Inputs are valid.');
+						wplaceBotState.running = !wplaceBotState.running;
+						if (wplaceBotState.running) {
+							startWplaceBot({ width: parseInt(wInput.value, 10), height: parseInt(hInput.value, 10) }, previewImg.src);
+						}
+						startBtn.textContent = wplaceBotState.running ? 'Stop' : 'Start';
                     } else {
-                        console.log('Apply button clicked but inputs are invalid.');
+                        console.error('Start button clicked but inputs are invalid.');
                     }
                 }
                 );

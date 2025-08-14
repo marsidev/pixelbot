@@ -48,22 +48,7 @@ fetch(BASE_URL)
                         sourceType: 'module',
                         plugins: ['jsx', 'classProperties'],
                     });
-
-                    // Find charges expression.
-                    let chargesExpression = null;
-                    traverse.default(ast, {
-                        ObjectExpression(path) {
-                            const { node } = path;
-                            if (node.properties.length === 5) {
-                                const chargesFunc = node.properties[4];
-                                if (chargesFunc.type === "ObjectMethod" && chargesFunc.key.name === "charges") {
-                                    chargesExpression = chargesFunc.body.body[0].argument;
-                                }
-                            }
-                        }
-                    });
-                    console.log(`Found charges expression: ${chargesExpression.object.name}.${chargesExpression.property.name}`);
-
+                    
                     // Find the captcha block and inject the hook.
                     traverse.default(ast, {
                         CallExpression(path) {
@@ -83,7 +68,7 @@ fetch(BASE_URL)
                                     const captchaCallback = object.properties[3].value;
 
                                     /*
-                                    window.setWplaceBotHook(aa.captcha, Zt.charges, async () => {
+                                    window.setWplaceBotHook(aa.captcha, async () => {
                                         //w(T).latLonToTileAndPixel(at, ht, l.pixelArtZoom);
                                         console.log("Reset the captcha");
                                         aa.captcha = void 0;
@@ -109,7 +94,7 @@ fetch(BASE_URL)
                                         const injection = types.expressionStatement(
                                             types.callExpression(
                                                 types.memberExpression(types.identifier("window"), types.identifier("setWplaceBotHook")),
-                                                [captcha, chargesExpression, arrowFunction]
+                                                [captcha, arrowFunction]
                                             )
                                         );
                                         captchaBlockStatement.push(injection);

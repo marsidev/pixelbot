@@ -8,7 +8,6 @@ const CURRENT_TILE_IDENT = "CURRENT_TILE_IDENT";
 const CURRENT_PIXEL_IDENT = "CURRENT_PIXEL_IDENT";
 const START_POINT_IDENT = "START_POINT_IDENT";
 const CURRENT_DRAWING_CONFIG_IDENT = "CURRENT_DRAWING_CONFIG_IDENT";
-
 window[CURRENT_DRAWING_CONFIG_IDENT] = JSON.parse(localStorage.getItem(CURRENT_DRAWING_CONFIG_IDENT));
 
 const wplaceBotState = {
@@ -30,11 +29,10 @@ const setCurrentDrawingConfig = (config) => {
 
 const fetchApi = async (path, params = {}) => fetch(BASE_URL + path, { credentials: 'include', ...params });
 const getCaptchaContext = () => window[CAPTCHA_CONTEXT_IDENT];
-const setWplaceBotHook = (context, charges, callback) => {
-    wplaceBotState.charges.count = charges; // Update the charges count
+const setWplaceBotHook = (context, callback) => {
     window[CAPTCHA_CONTEXT_IDENT] = context;
     window[CAPTCHA_CALLBACK_IDENT] = callback;
-    console.log("Set captcha context, current charges:", charges);
+    console.log("Set captcha context.");
 
     document.getElementById("captchaWarningText").style.display = "none";
 };
@@ -60,24 +58,24 @@ const getCurrentTileAndPixel = () => {
     };
 };
 
-const fetchCharge = async () => {
+const fetchCharges = async () => {
     let response = await fetchApi('/me');
-    if (response.ok) {
+    if (response && response.ok) {
         response = await response.json();
-        console.log("Fetched user info:", response);
         wplaceBotState.userInfo = response;
         wplaceBotState.charges = {
             count: Math.floor(response.charges.count),
             max: Math.floor(response.charges.max),
             cooldownMs: response.charges.cooldownMs
         };
-    } else {
-        console.error("WplaceBot: Failed to fetch user info.")
+        return response;
     }
-    return response;
+        
+    console.error("WplaceBot: Failed to fetch user info.");
+    return null;
 };
 
-fetchCharge();
+fetchCharges().then((response) => console.log("Fetched user info:", response));
 
 const isContextReady = () => Boolean(getCaptchaContext());
 
@@ -89,7 +87,8 @@ const setWplaceApiClient = client => {
 
 const hookPaint = async (chunk, coords, colors) => {
     if (!isContextReady()) {
-        return console.warn("Context is not ready yet.");
+        console.warn("Context is not ready yet.");
+        return null;
     }
 
     const payload = {
@@ -256,9 +255,6 @@ const startWplaceBot = async ({ width, height }, imageUrl) => {
                     if (newPixelId === "0") {
                         continue;
                     }
-                    if (newPixelId === "1") {
-                        console.log('sa');
-                    }
 
                     const oldPixelId = findNearestColorId({ r: chunkR, g: chunkG, b: chunkB, a: chunkA });
                     if (oldPixelId === newPixelId) {
@@ -281,17 +277,35 @@ const startWplaceBot = async ({ width, height }, imageUrl) => {
                 }
             }
 
-            console.log("Paint: ", coords, " ", colors);
+            if (coords.length === 0 && colors.length === 0 && charges > 0) {
+                console.log("Wplace Bot finished! Keep the bot open to avoid invasions.");
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                continue;
+            }
+            
+            console.log("Sending paint request: ", coords, " ", colors);
             // Finally paint.
             const response = await hookPaint(startPoint.tile, coords, colors);
 
-            if (!response || !response.ok) {
-                if (response.status == 403) {
-                    wplaceBotState.charges.count = response.body.charges;
-                }
-                console.error("WplaceBot: Error paint request rejected.");
+            if (!response.ok) {
+                console.error("WplaceBot: Error paint request rejected: ", response.status);
             } else if (response.ok) {
-                wplaceBotState.charges.count -= colors.length;
+                let result = await response.json();
+                console.log(`Successfuly painted ${result.painted} pixels.`);
+            }
+
+            // Fetch charges to get the most updated value.
+            await fetchCharges();
+            console.log("Current charges: ", wplaceBotState.charges.count);
+
+            if (wplaceBotState.charges.count === 0) {
+                    
+                const interval = setInterval(() => {
+                    fetchCharges().then();
+                    if (wplaceBotState.charges.count !== 0) {
+                        clearInterval(interval);
+                    }
+                }, 30 * 1000);
             }
 
             // Wait a bit before sending a request again

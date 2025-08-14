@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@babel/generator": "^7.28.0",
+    "@babel/parser": "^7.28.0",
+    "@babel/traverse": "^7.28.0",
+    "jsdom": "^26.1.0",
+    "node-fetch": "^3.3.2"
+  },
+  "type": "module"
+}

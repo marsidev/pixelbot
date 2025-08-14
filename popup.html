@@ -1,0 +1,333 @@
+<div id="wplaceBot" data-collapsed="false"
+    style="position:fixed;top:50px;left:50px;z-index:9999;border:1px solid #e5e7eb;border-radius:10px;padding:8px;width:100%;max-width:400px;box-shadow:0 4px 14px rgba(16,24,40,0.04);font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
+    <div id="dragHeader"
+        style="display:flex;align-items:center;gap:10px;user-select:none;padding:6px 4px;background:#f3f4f6;border-radius:8px;">
+        <svg id="chev"
+            style="width:18px;height:18px;display:inline-block;transition:transform .18s ease;transform-origin:center;color:#2563eb;"
+            viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round" />
+        </svg>
+        <div style="font-weight:600;color:#111827;font-size:14px;flex:1;">wplace bot</div>
+    </div>
+    <div id="controlsRow" style="display:flex;flex-direction:column;align-items:stretch;gap:12px;">
+        <div style="width:100%;height:150px;border-radius:8px;border:1px dashed #e6edf3;
+							display:flex;align-items:center;justify-content:center;
+							overflow:hidden;background:#f8fafc;">
+
+            <button id="clearBtn" title="Clear All" style="position:absolute;top:60px;right:20px;
+						background:none;border:none;cursor:pointer;
+						font-size:18px;line-height:1;">
+                🗑️
+            </button>
+            <span id="previewImgPlaceholder" style="color:#94a3b8;font-size:14px;">Preview</span>
+            <img id="previewImg" alt="Preview" style="width:100%;height:100%;object-fit:contain;
+								image-rendering: pixelated;
+								image-rendering: crisp-edges;
+								display:none;" />
+        </div>
+
+        <label style="display:flex;flex-direction:column;font-size:13px;color:#6b7280;">
+            <span>Image</span>
+            <input id="imageInput" type="file" accept="image/*"
+                style="font-size:13px;padding:6px 8px;border:1px solid #e6edf3;border-radius:8px;background:#fcfdff;outline:none;" />
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:13px;color:#6b7280;">
+            <span>Width (px)</span>
+            <input id="pxW" type="number" min="1" placeholder="width px"
+                style="font-size:13px;padding:6px 8px;border:1px solid #e6edf3;border-radius:8px;background:#fcfdff;outline:none;" />
+        </label>
+        <label style="display:flex;flex-direction:column;font-size:13px;color:#6b7280;">
+            <span>Height (px)</span>
+            <input id="pxH" type="number" min="1" placeholder="height px"
+                style="font-size:13px;padding:6px 8px;border:1px solid #e6edf3;border-radius:8px;background:#fcfdff;outline:none;" />
+        </label>
+        <div style="display: flex; gap: 10px;">
+            <label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+                <span>Pixel Count</span>
+                <input id="pxCount" type="number" min="1" placeholder="pixel count"
+                    style="font-size: 13px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;"
+                    readonly />
+            </label>
+
+            <label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+                <span>Total Time</span>
+                <input id="totalTimeInput" min="1" placeholder="total time"
+                    style="font-size: 11px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;"
+                    readonly />
+            </label>
+        </div>
+        <label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+            <span>Starting Point</span>
+            <input id="startingPointInput" placeholder="starting point"
+                style="font-size: 13px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;"
+                readonly />
+        </label>
+
+        <span id="captchaWarningText" style="color:#ef4444;font-size:10px;display: block;">⚠️ Captcha is not
+            ready</span>
+
+        <button id="startBtn"
+            style="padding:8px 12px;border-radius:10px;border:none;background:#2563eb;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,0.12);">Start</button>
+    </div>
+    <script>
+        // Add the dihter script.
+        fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
+            .then(res => res.text())
+            .then(code => {
+                const script = document.createElement("script");
+                script.textContent = code;
+                document.body.appendChild(script);
+            })
+            .catch(err => console.error("Failed to load script:", err));
+        (function () {
+            const container = document.getElementById('wplaceBot');
+            const header = document.getElementById('dragHeader');
+            const previewImg = document.getElementById('previewImg');
+            const previewImgPlaceholder = document.getElementById('previewImgPlaceholder');
+            const fileInput = document.getElementById('imageInput');
+            const wInput = document.getElementById('pxW');
+            const hInput = document.getElementById('pxH');
+            const pxCountInput = document.getElementById('pxCount');
+            const totalTimeInput = document.getElementById('totalTimeInput');
+            const startingPointInput = document.getElementById('startingPointInput');
+            const startBtn = document.getElementById('startBtn');
+            const clearBtn = document.getElementById('clearBtn');
+
+            let isDragging = false
+                , offsetX = 0
+                , offsetY = 0
+                , startX = 0
+                , startY = 0;
+            let originalImageUrl = null;
+            let lastDitherTimeout = null;
+
+            // Load config.
+            {
+                const config = getCurrentDrawingConfig();
+                if (config) {
+                    if (config.imageSrc) {
+                        previewImg.src = config.imageSrc;
+                        previewImg.style.display = "block";
+                        previewImgPlaceholder.style.display = "none";
+                    }
+                    if (config.height) {
+                        hInput.value = config.height;
+                    }
+                    if (config.width) {
+                        wInput.value = config.width;
+                    }
+
+                    if (config.width && config.height) {
+                        const pxCount = config.width * config.height;
+                        pxCountInput.value = pxCount;
+                        totalTimeInput.value = toTimeString(pxCount / 2);
+                    }
+                    if (config.startPoint) {
+                        startingPointInput.value = `Chunk: { x: ${config.startPoint.tile.x}, y: ${config.startPoint.tile.y} }, Pixel: { x: ${config.startPoint.pixel.x}, y: ${config.startPoint.pixel.y} }`;
+                    }
+                }
+            }
+
+            function setCollapsed(v) {
+                container.setAttribute('data-collapsed', String(v));
+                document.getElementById('controlsRow').style.display = v ? 'none' : 'flex';
+                document.getElementById('chev').style.transform = v ? 'rotate(-90deg)' : '';
+            }
+
+            header.addEventListener('mousedown', (e) => {
+                startX = e.clientX;
+                startY = e.clientY;
+                isDragging = true;
+                offsetX = e.clientX - container.offsetLeft;
+                offsetY = e.clientY - container.offsetTop;
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+            }
+            );
+
+            header.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                isDragging = true;
+                offsetX = e.touches[0].clientX - container.offsetLeft;
+                offsetY = e.touches[0].clientY - container.offsetTop;
+                document.addEventListener('touchmove', dragTouch);
+                document.addEventListener('touchend', stopDrag);
+            }
+            );
+
+            header.addEventListener('click', (e) => {
+                const moved = Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5;
+                if (!isDragging && !moved) {
+                    const isCollapsed = container.getAttribute('data-collapsed') === 'true';
+                    setCollapsed(!isCollapsed);
+                }
+            }
+            );
+
+            function drag(e) {
+                container.style.left = e.clientX - offsetX + 'px';
+                container.style.top = e.clientY - offsetY + 'px';
+            }
+            function dragTouch(e) {
+                container.style.left = e.touches[0].clientX - offsetX + 'px';
+                container.style.top = e.touches[0].clientY - offsetY + 'px';
+            }
+            function stopDrag() {
+                isDragging = false;
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('mouseup', stopDrag);
+                document.removeEventListener('touchmove', dragTouch);
+                document.removeEventListener('touchend', stopDrag);
+            }
+
+            // Debounce function to prevent excessive dithering calls
+            function debounce(func, delay) {
+                return function (...args) {
+                    clearTimeout(lastDitherTimeout);
+                    lastDitherTimeout = setTimeout(() => func.apply(this, args), delay);
+                }
+                    ;
+            }
+
+            function validateInputs() {
+                const w = parseInt(wInput.value, 10);
+                const h = parseInt(hInput.value, 10);
+                const isWidthValid = !isNaN(w) && w > 0;
+                const isHeightValid = !isNaN(h) && h > 0;
+
+                if (!isWidthValid) {
+                    wInput.style.border = '1px solid #ef4444';
+                } else {
+                    wInput.style.border = '1px solid #e6edf3';
+                }
+
+                if (!isHeightValid) {
+                    hInput.style.border = '1px solid #ef4444';
+                } else {
+                    hInput.style.border = '1px solid #e6edf3';
+                }
+
+                return isWidthValid && isHeightValid;
+            }
+
+            function toTimeString(totalMinutes) {
+                var days = Math.floor(totalMinutes / 1440); // 1440 minutes in a day
+                var hours = Math.floor((totalMinutes % 1440) / 60);
+                var minutes = totalMinutes % 60;
+
+                if (hours < 10) { hours = "0" + hours; }
+                if (minutes < 10) { minutes = "0" + minutes; }
+
+                return days + " days " + hours + " hours " + minutes + " minutes";
+            }
+
+
+            async function performDither() {
+                if (!originalImageUrl) {
+                    previewImg.src = '';
+                    previewImg.style.display = "none";
+                    previewImgPlaceholder.style.display = "block";
+                    container.style.border = '1px solid #e5e7eb';
+                    return;
+                }
+
+                if (!validateInputs()) {
+                    container.style.border = '1px solid #ef4444';
+                    return;
+                }
+
+                const w = parseInt(wInput.value, 10);
+                const h = parseInt(hInput.value, 10);
+                const pxCount = w * h;
+                pxCountInput.value = pxCount;
+                totalTimeInput.value = toTimeString(pxCount / 2);
+
+                container.style.border = '1px solid #e5e7eb';
+
+                try {
+                    const ditheredDataUrl = await ditherImageFromUrl(originalImageUrl, w, h, {
+                        algorithm: 'floyd-steinberg',
+                    });
+                    previewImg.src = ditheredDataUrl;
+                    previewImg.style.display = "block";
+                    previewImgPlaceholder.style.display = "none";
+                } catch (error) {
+                    console.error('Dithering failed:', error);
+                    previewImg.src = originalImageUrl;
+                    if (originalImageUrl) {
+                        previewImg.style.display = "block";
+                        previewImgPlaceholder.style.display = "none";
+                    }
+                    alert('Failed to dither image.');
+                }
+            }
+
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                if (originalImageUrl)
+                    URL.revokeObjectURL(originalImageUrl);
+                originalImageUrl = URL.createObjectURL(file);
+
+                const img = new Image();
+                img.onload = () => {
+                    // Set the width and height inputs to the image's original dimensions
+                    wInput.value = img.width;
+                    hInput.value = img.height;
+                    performDither();
+                }
+                    ;
+                img.src = originalImageUrl;
+            }
+            );
+
+            const debouncedDither = debounce(performDither, 300);
+            wInput.addEventListener('input', debouncedDither);
+            hInput.addEventListener('input', debouncedDither);
+
+            wInput.addEventListener('change', validateInputs);
+            hInput.addEventListener('change', validateInputs);
+
+            startBtn.addEventListener('click', () => {
+                if (validateInputs()) {
+                    wplaceBotState.running = !wplaceBotState.running;
+                    if (wplaceBotState.running) {
+                        const width = parseInt(wInput.value, 10);
+                        const height = parseInt(hInput.value, 10);
+                        const imageSrc = previewImg.src;
+
+                        const config = getCurrentDrawingConfig();
+                        config.width = width;
+                        config.height = height;
+                        config.imageSrc = imageSrc;
+                        setCurrentDrawingConfig(config);
+
+                        setCurrentDrawingConfig
+                        startWplaceBot({ width, height }, imageSrc);
+                    }
+                    startBtn.textContent = wplaceBotState.running ? 'Stop' : 'Start';
+                } else {
+                    console.error('Start button clicked but inputs are invalid.');
+                }
+            });
+
+            clearBtn.addEventListener('click', () => {
+                setCurrentDrawingConfig({});
+                wInput.value = "";
+                hInput.value = "";
+                previewImg.src = "";
+                previewImg.style.display = "none";
+                previewImgPlaceholder.style.display = "block";
+                pxCountInput.value = "";
+                totalTimeInput.value = "";
+                startingPointInput.value = "";
+            })
+        }
+        )();
+    </script>
+</div>

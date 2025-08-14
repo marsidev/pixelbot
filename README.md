@@ -1,6 +1,7 @@
 # Usage
 ```
 git clone https://github.com/kalintas/wplace-bot
+cd wplace-bot
 npm install
 node override.js
 ```

@@ -1,75 +1,203 @@
-<div id="wplaceBot" data-collapsed="false"
-    style="position:fixed;top:50px;left:50px;z-index:9999;border:1px solid #e5e7eb;border-radius:10px;padding:8px;width:100%;max-width:400px;box-shadow:0 4px 14px rgba(16,24,40,0.04);font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;background:#ffffff;display:flex;flex-direction:column;gap:12px;">
-    <div id="dragHeader"
-        style="display:flex;align-items:center;gap:10px;user-select:none;padding:6px 4px;background:#f3f4f6;border-radius:8px;">
-        <svg id="chev"
-            style="width:18px;height:18px;display:inline-block;transition:transform .18s ease;transform-origin:center;color:#2563eb;"
-            viewBox="0 0 24 24" fill="none" aria-hidden>
+<div id="wplaceBot" class="wplace-bot" data-collapsed="false">
+    <style>
+        .wplace-bot {
+            position: fixed;
+            top: 50px;
+            left: 50px;
+            z-index: 9999;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 14px rgba(16, 24, 40, 0.04);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            background: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        :root {
+            --bg-color: #ffffff;
+            --bg-muted: #f3f4f6;
+            --bg-preview: #f8fafc;
+            --border-color: #e5e7eb;
+            --border-muted: #e6edf3;
+            --text-color: #111827;
+            --text-muted: #6b7280;
+            --text-placeholder: #94a3b8;
+            --primary: #2563eb;
+            --error: #ef4444;
+        }
+
+        .wplace-bot__header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            user-select: none;
+            padding: 6px 4px;
+            background: var(--bg-muted);
+            border-radius: 8px;
+            cursor: grab;
+        }
+
+        .wplace-bot__title {
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 14px;
+            flex: 1;
+        }
+
+        .wplace-bot__chev {
+            width: 18px;
+            height: 18px;
+            display: inline-block;
+            transition: transform 0.18s ease;
+            transform-origin: center;
+            color: var(--primary);
+        }
+
+        .wplace-bot__controls {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .wplace-bot__preview {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            border-radius: 8px;
+            border: 1px dashed var(--border-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: var(--bg-preview);
+        }
+
+        .wplace-bot__clear-btn {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .wplace-bot__preview-placeholder {
+            color: var(--text-placeholder);
+            font-size: 14px;
+        }
+
+        .wplace-bot__preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            display: none;
+        }
+
+        .wplace-bot__label {
+            display: flex;
+            flex-direction: column;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .wplace-bot__input {
+            font-size: 13px;
+            padding: 6px 8px;
+            border: 1px solid var(--border-muted);
+            border-radius: 8px;
+            background: #fcfdff;
+            outline: none;
+        }
+
+        .wplace-bot__row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .wplace-bot__input--readonly {
+            font-size: 11px;
+        }
+
+        .wplace-bot__warning {
+            color: var(--error);
+            font-size: 10px;
+            display: block;
+        }
+
+        .wplace-bot__start-btn {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+        }
+    </style>
+
+    <div id="dragHeader" class="wplace-bot__header">
+        <svg id="chev" class="wplace-bot__chev" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
                 stroke-linejoin="round" />
         </svg>
-        <div style="font-weight:600;color:#111827;font-size:14px;flex:1;">wplace bot</div>
+        <div class="wplace-bot__title">wplace bot</div>
     </div>
-    <div id="controlsRow" style="display:flex;flex-direction:column;align-items:stretch;gap:12px;">
-        <div style="width:100%;height:150px;border-radius:8px;border:1px dashed #e6edf3;
-							display:flex;align-items:center;justify-content:center;
-							overflow:hidden;background:#f8fafc;">
 
-            <button id="clearBtn" title="Clear All" style="position:absolute;top:60px;right:20px;
-						background:none;border:none;cursor:pointer;
-						font-size:18px;line-height:1;">
-                🗑️
-            </button>
-            <span id="previewImgPlaceholder" style="color:#94a3b8;font-size:14px;">Preview</span>
-            <img id="previewImg" alt="Preview" style="width:100%;height:100%;object-fit:contain;
-								image-rendering: pixelated;
-								image-rendering: crisp-edges;
-								display:none;" />
+    <div id="controlsRow" class="wplace-bot__controls">
+        <div class="wplace-bot__preview">
+            <button id="clearBtn" title="Clear All" class="wplace-bot__clear-btn">🗑️</button>
+            <span id="previewImgPlaceholder" class="wplace-bot__preview-placeholder">Preview</span>
+            <img id="previewImg" alt="Preview" class="wplace-bot__preview-img" />
         </div>
 
-        <label style="display:flex;flex-direction:column;font-size:13px;color:#6b7280;">
+        <label class="wplace-bot__label">
             <span>Image</span>
-            <input id="imageInput" type="file" accept="image/*"
-                style="font-size:13px;padding:6px 8px;border:1px solid #e6edf3;border-radius:8px;background:#fcfdff;outline:none;" />
+            <input id="imageInput" type="file" accept="image/*" class="wplace-bot__input" />
         </label>
-        <label style="display:flex;flex-direction:column;font-size:13px;color:#6b7280;">
+
+        <label class="wplace-bot__label">
             <span>Width (px)</span>
-            <input id="pxW" type="number" min="1" placeholder="width px"
-                style="font-size:13px;padding:6px 8px;border:1px solid #e6edf3;border-radius:8px;background:#fcfdff;outline:none;" />
+            <input id="pxW" type="number" min="1" placeholder="width px" class="wplace-bot__input" />
         </label>
-        <label style="display:flex;flex-direction:column;font-size:13px;color:#6b7280;">
+
+        <label class="wplace-bot__label">
             <span>Height (px)</span>
-            <input id="pxH" type="number" min="1" placeholder="height px"
-                style="font-size:13px;padding:6px 8px;border:1px solid #e6edf3;border-radius:8px;background:#fcfdff;outline:none;" />
+            <input id="pxH" type="number" min="1" placeholder="height px" class="wplace-bot__input" />
         </label>
-        <div style="display: flex; gap: 10px;">
-            <label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+
+        <div class="wplace-bot__row">
+            <label class="wplace-bot__label" style="flex: 1;">
                 <span>Pixel Count</span>
-                <input id="pxCount" type="number" min="1" placeholder="pixel count"
-                    style="font-size: 13px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;"
-                    readonly />
+                <input id="pxCount" type="number" min="1" placeholder="pixel count" class="wplace-bot__input" readonly />
             </label>
 
-            <label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+            <label class="wplace-bot__label" style="flex: 1;">
                 <span>Total Time</span>
-                <input id="totalTimeInput" min="1" placeholder="total time"
-                    style="font-size: 11px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;"
-                    readonly />
+                <input id="totalTimeInput" placeholder="total time" class="wplace-bot__input wplace-bot__input--readonly" readonly />
             </label>
         </div>
-        <label style="flex: 1; font-size: 13px; color: #6b7280; display: flex; flex-direction: column;">
+
+        <label class="wplace-bot__label" style="flex: 1;">
             <span>Starting Point</span>
-            <input id="startingPointInput" placeholder="starting point"
-                style="font-size: 13px; padding: 6px 8px; border: 1px solid #e6edf3; border-radius: 8px; background: #fcfdff; outline: none;"
-                readonly />
+            <input id="startingPointInput" placeholder="starting point" class="wplace-bot__input" readonly />
         </label>
 
-        <span id="captchaWarningText" style="color:#ef4444;font-size:10px;display: block;">⚠️ Captcha is not
-            ready</span>
+        <span id="captchaWarningText" class="wplace-bot__warning">⚠️ Captcha is not ready</span>
 
-        <button id="startBtn"
-            style="padding:8px 12px;border-radius:10px;border:none;background:#2563eb;color:white;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,0.12);">Start</button>
+        <button id="startBtn" class="wplace-bot__start-btn">Start</button>
     </div>
+
     <script>
         // Add the dihter script.
         fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
@@ -187,8 +315,7 @@
                 return function (...args) {
                     clearTimeout(lastDitherTimeout);
                     lastDitherTimeout = setTimeout(() => func.apply(this, args), delay);
-                }
-                    ;
+                };
             }
 
             function validateInputs() {

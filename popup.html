@@ -80,8 +80,8 @@
 
         .wplace-bot__clear-btn {
             position: absolute;
-            top: 60px;
-            right: 20px;
+            top: 10px;
+            right: 10px;
             background: none;
             border: none;
             cursor: pointer;
@@ -144,6 +144,32 @@
             cursor: pointer;
             box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
         }
+
+        .wplace-bot__noSelect {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none; 
+        }
+
+        .wplace-bot__advancedContent {
+            transition: all 0.2s ease;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 8px;
+        }
+
+        .wplace-bot__advancedHeader {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            background: var(--bg-muted);
+            border-radius: 6px;
+            padding: 4px 6px;
+        }
     </style>
 
     <div id="dragHeader" class="wplace-bot__header">
@@ -166,25 +192,34 @@
             <input id="imageInput" type="file" accept="image/*" class="wplace-bot__input" />
         </label>
 
-        <label class="wplace-bot__label">
-            <span>Width (px)</span>
-            <input id="pxW" type="number" min="1" placeholder="width px" class="wplace-bot__input" />
-        </label>
+        <div class="wplace-bot__row">
+            <label class="wplace-bot__label" style="flex: 1;">
+                <span>Width (px)</span>
+                <input id="pxW" type="number" min="1" placeholder="width px" class="wplace-bot__input" />
+            </label>
 
-        <label class="wplace-bot__label">
-            <span>Height (px)</span>
-            <input id="pxH" type="number" min="1" placeholder="height px" class="wplace-bot__input" />
+            <label class="wplace-bot__label" style="flex: 1;">
+                <span>Height (px)</span>
+                <input id="pxH" type="number" min="1" placeholder="height px" class="wplace-bot__input" />
+            </label>
+        </div>
+
+        <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;">
+            <input id="lockAspectRatioInput" type="checkbox" style="width:14px;height:14px;"/>
+            <span>Lock aspect ratio</span>
         </label>
 
         <div class="wplace-bot__row">
             <label class="wplace-bot__label" style="flex: 1;">
                 <span>Pixel Count</span>
-                <input id="pxCount" type="number" min="1" placeholder="pixel count" class="wplace-bot__input" readonly />
+                <input id="pxCount" type="number" min="1" placeholder="pixel count" class="wplace-bot__input"
+                    readonly />
             </label>
 
             <label class="wplace-bot__label" style="flex: 1;">
                 <span>Total Time</span>
-                <input id="totalTimeInput" placeholder="total time" class="wplace-bot__input wplace-bot__input--readonly" readonly />
+                <input id="totalTimeInput" placeholder="total time"
+                    class="wplace-bot__input wplace-bot__input--readonly" readonly />
             </label>
         </div>
 
@@ -193,13 +228,59 @@
             <input id="startingPointInput" placeholder="starting point" class="wplace-bot__input" readonly />
         </label>
 
-        <span id="captchaWarningText" class="wplace-bot__warning">⚠️ Captcha is not ready</span>
+        <div id="advancedHeader" class="wplace-bot__advancedHeader">
+            <svg id="advancedChev" class="wplace-bot__chev" viewBox="0 0 24 24" style="transform:rotate(-90deg)" fill="none">
+                <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <div class="wplace-bot__noSelect" style="font-weight:500; font-size:13px; flex:1;">Advanced Settings</div>
+        </div>
 
+        <div id="advancedContent" class="wplace-bot__advancedContent">
+            <label class="wplace-bot__label">
+                <span>Dithering Algorithm</span>
+                <select id="ditherAlgorithm" class="wplace-bot__input">
+                    <option value='nearest'>Nearest</option>
+                    <option value='floyd-steinberg'>Floyd-Steinberg</option>
+                    <option value='atkinson'>Atkinson</option>
+                    <option value='jarvis'>Jarvis</option>
+                    <option value='ordered'>Ordered</option>
+                </select>
+            </label>
+            <div class="wplace-bot__row">
+                <label class="wplace-bot__label" style="flex:1;">
+                    <span>Gamma</span>
+                    <input id="gammaInput" type="number" step="0.1" value="1.0" class="wplace-bot__input"/>
+                </label>
+                <label class="wplace-bot__label" style="flex:1;">
+                    <span>Ordered size</span>
+                    <select id="orderedSizeInput" class="wplace-bot__input">
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="8" selected>8</option>
+                    </select>
+                </label>
+            </div>
+            
+            <div class="wplace-bot__row" style="display: flex;gap: 10px;">
+                <label class="wplace-bot__label" style="flex:1 1 50%;">
+                    <span>Strength (0..1)</span>
+                    <input id="strengthInput" type="range" min="0" max="1" step="0.01" value="1" class="wplace-bot__input" style="cursor:pointer;padding: 0px;"/>
+                </label>
+                <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;margin-top: 15px;">
+                    <input id="serpentineInput" type="checkbox" style="width:14px;height:14px;"/>
+                    <span>Serpentine</span>
+                </label>
+            </div>
+        </div>
+
+
+        <span id="captchaWarningText" class="wplace-bot__warning">⚠️ Captcha is not ready</span>
         <button id="startBtn" class="wplace-bot__start-btn">Start</button>
     </div>
 
     <script>
-        // Add the dihter script.
         fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
             .then(res => res.text())
             .then(code => {
@@ -221,12 +302,18 @@
             const startingPointInput = document.getElementById('startingPointInput');
             const startBtn = document.getElementById('startBtn');
             const clearBtn = document.getElementById('clearBtn');
+            const advHeader = document.getElementById('advancedHeader');
+            const advContent = document.getElementById('advancedContent');
+            const advChev = document.getElementById('advancedChev');
+            const advDitherAlgo = document.getElementById('ditherAlgorithm');
+            const advGammaInput = document.getElementById('gammaInput');
+            const advOrderedSizeInput = document.getElementById('orderedSizeInput');
+            const advStrengthInput = document.getElementById('strengthInput');
+            const advSerpentineInput = document.getElementById('serpentineInput');
+            const lockAspectRatioInput = document.getElementById('lockAspectRatioInput');
 
-            let isDragging = false
-                , offsetX = 0
-                , offsetY = 0
-                , startX = 0
-                , startY = 0;
+            let aspectRatio = 0;
+            let isDragging = false, offsetX = 0, offsetY = 0, startX = 0, startY = 0;
             let originalImageUrl = null;
             let lastDitherTimeout = null;
 
@@ -245,14 +332,35 @@
                     if (config.width) {
                         wInput.value = config.width;
                     }
-
                     if (config.width && config.height) {
                         const pxCount = config.width * config.height;
                         pxCountInput.value = pxCount;
                         totalTimeInput.value = toTimeString(pxCount / 2);
+                        aspectRatio = config.width / config.height;
                     }
                     if (config.startPoint) {
                         startingPointInput.value = `Chunk: { x: ${config.startPoint.tile.x}, y: ${config.startPoint.tile.y} }, Pixel: { x: ${config.startPoint.pixel.x}, y: ${config.startPoint.pixel.y} }`;
+                    }
+                    if (config.ditherAlgorithm) {
+                        advDitherAlgo.value = config.ditherAlgorithm;
+                    }
+                    if (config.shouldRunAtStart) {
+                        config.shouldRunAtStart = false;
+                        setCurrentDrawingConfig(config);
+                        // Start the bot first thing.
+                        callStartWplaceBot();
+                    }
+                    if (config.gamma) {
+                        advGammaInput.value = config.gamma;
+                    }
+                    if (config.orderedSize) {
+                        advOrderedSizeInput.value = config.orderedSize;
+                    }
+                    if (config.strength) {
+                        advStrengthInput.value = config.strength;
+                    }
+                    if (config.serpentine) {
+                        advSerpentineInput.value = config.serpentine;
                     }
                 }
             }
@@ -271,8 +379,7 @@
                 offsetY = e.clientY - container.offsetTop;
                 document.addEventListener('mousemove', drag);
                 document.addEventListener('mouseup', stopDrag);
-            }
-            );
+            });
 
             header.addEventListener('touchstart', (e) => {
                 startX = e.touches[0].clientX;
@@ -282,8 +389,7 @@
                 offsetY = e.touches[0].clientY - container.offsetTop;
                 document.addEventListener('touchmove', dragTouch);
                 document.addEventListener('touchend', stopDrag);
-            }
-            );
+            });
 
             header.addEventListener('click', (e) => {
                 const moved = Math.abs(e.clientX - startX) > 5 || Math.abs(e.clientY - startY) > 5;
@@ -291,8 +397,7 @@
                     const isCollapsed = container.getAttribute('data-collapsed') === 'true';
                     setCollapsed(!isCollapsed);
                 }
-            }
-            );
+            });
 
             function drag(e) {
                 container.style.left = e.clientX - offsetX + 'px';
@@ -310,46 +415,24 @@
                 document.removeEventListener('touchend', stopDrag);
             }
 
-            // Debounce function to prevent excessive dithering calls
-            function debounce(func, delay) {
-                return function (...args) {
-                    clearTimeout(lastDitherTimeout);
-                    lastDitherTimeout = setTimeout(() => func.apply(this, args), delay);
-                };
-            }
-
             function validateInputs() {
                 const w = parseInt(wInput.value, 10);
                 const h = parseInt(hInput.value, 10);
                 const isWidthValid = !isNaN(w) && w > 0;
                 const isHeightValid = !isNaN(h) && h > 0;
-
-                if (!isWidthValid) {
-                    wInput.style.border = '1px solid #ef4444';
-                } else {
-                    wInput.style.border = '1px solid #e6edf3';
-                }
-
-                if (!isHeightValid) {
-                    hInput.style.border = '1px solid #ef4444';
-                } else {
-                    hInput.style.border = '1px solid #e6edf3';
-                }
-
+                wInput.style.border = isWidthValid ? '1px solid #e6edf3' : '1px solid #ef4444';
+                hInput.style.border = isHeightValid ? '1px solid #e6edf3' : '1px solid #ef4444';
                 return isWidthValid && isHeightValid;
             }
 
             function toTimeString(totalMinutes) {
-                var days = Math.floor(totalMinutes / 1440); // 1440 minutes in a day
+                var days = Math.floor(totalMinutes / 1440);
                 var hours = Math.floor((totalMinutes % 1440) / 60);
                 var minutes = totalMinutes % 60;
-
                 if (hours < 10) { hours = "0" + hours; }
                 if (minutes < 10) { minutes = "0" + minutes; }
-
                 return days + " days " + hours + " hours " + minutes + " minutes";
             }
-
 
             async function performDither() {
                 if (!originalImageUrl) {
@@ -359,23 +442,23 @@
                     container.style.border = '1px solid #e5e7eb';
                     return;
                 }
-
                 if (!validateInputs()) {
                     container.style.border = '1px solid #ef4444';
                     return;
                 }
-
                 const w = parseInt(wInput.value, 10);
                 const h = parseInt(hInput.value, 10);
                 const pxCount = w * h;
                 pxCountInput.value = pxCount;
                 totalTimeInput.value = toTimeString(pxCount / 2);
-
                 container.style.border = '1px solid #e5e7eb';
-
                 try {
                     const ditheredDataUrl = await ditherImageFromUrl(originalImageUrl, w, h, {
-                        algorithm: 'floyd-steinberg',
+                        algorithm: advDitherAlgo.value,
+                        gamma: advGammaInput.value,
+                        strength: advStrengthInput.value,
+                        serpentine: advSerpentineInput.checked,
+                        orderedSize: parseInt(advOrderedSizeInput.value)
                     });
                     previewImg.src = ditheredDataUrl;
                     previewImg.style.display = "block";
@@ -393,55 +476,78 @@
 
             fileInput.addEventListener('change', (e) => {
                 const file = e.target.files && e.target.files[0];
-                if (!file) {
-                    return;
-                }
-
-                if (originalImageUrl)
-                    URL.revokeObjectURL(originalImageUrl);
+                if (!file) return;
+                if (originalImageUrl) URL.revokeObjectURL(originalImageUrl);
                 originalImageUrl = URL.createObjectURL(file);
-
                 const img = new Image();
                 img.onload = () => {
-                    // Set the width and height inputs to the image's original dimensions
                     wInput.value = img.width;
                     hInput.value = img.height;
+                    aspectRatio = img.width / img.height;
                     performDither();
-                }
-                    ;
+                };
                 img.src = originalImageUrl;
+            });
+
+            function updateImageHeight(event) {
+                if (!validateInputs()) {
+                    return;
+                }
+                if (lockAspectRatioInput.checked) {
+                    hInput.value = Math.round(event.target.value / aspectRatio);
+                } else {
+                    aspectRatio = event.target.value / parseInt(hInput.value);
+                }
             }
-            );
+            function updateImageWidth(event) {
+                if (!validateInputs()) {
+                    return;
+                }
+                if (lockAspectRatioInput.checked) {
+                    wInput.value = Math.round(event.target.value / aspectRatio);
+                } else {
+                    aspectRatio = event.target.value / parseInt(hInput.value);
+                }
+            }
 
-            const debouncedDither = debounce(performDither, 300);
-            wInput.addEventListener('input', debouncedDither);
-            hInput.addEventListener('input', debouncedDither);
+            wInput.addEventListener('input', (event) => { updateImageHeight(event); performDither() });
+            hInput.addEventListener('input', (event) => { updateImageWidth(event); performDither(); });
+            
+            advDitherAlgo.addEventListener('input', performDither);
+            advGammaInput.addEventListener('input', performDither);
+            advStrengthInput.addEventListener('input', performDither);
+            advOrderedSizeInput.addEventListener('input', performDither);
+            advSerpentineInput.addEventListener('input', performDither);
 
-            wInput.addEventListener('change', validateInputs);
-            hInput.addEventListener('change', validateInputs);
+            wInput.addEventListener('change', updateImageHeight);
+            hInput.addEventListener('change', updateImageWidth);
 
-            startBtn.addEventListener('click', () => {
+            function callStartWplaceBot() {
                 if (validateInputs()) {
                     wplaceBotState.running = !wplaceBotState.running;
                     if (wplaceBotState.running) {
                         const width = parseInt(wInput.value, 10);
                         const height = parseInt(hInput.value, 10);
                         const imageSrc = previewImg.src;
-
                         const config = getCurrentDrawingConfig();
                         config.width = width;
                         config.height = height;
                         config.imageSrc = imageSrc;
+                        config.ditherAlgorithm = advDitherAlgo.value;
+                        config.gamma = advGammaInput.value;
+                        config.orderedSize = advOrderedSizeInput.value;
+                        config.strength = advStrengthInput.value;
+                        config.serpentine = advSerpentineInput.value;
                         setCurrentDrawingConfig(config);
-
-                        setCurrentDrawingConfig
                         startWplaceBot({ width, height }, imageSrc);
                     }
                     startBtn.textContent = wplaceBotState.running ? 'Stop' : 'Start';
                 } else {
-                    console.error('Start button clicked but inputs are invalid.');
+                    console.error('Could not start the bot because inputs were invalid.');
                 }
-            });
+            }
+
+            startBtn.addEventListener('click', callStartWplaceBot);
 
             clearBtn.addEventListener('click', () => {
                 setCurrentDrawingConfig({});
@@ -453,8 +559,14 @@
                 pxCountInput.value = "";
                 totalTimeInput.value = "";
                 startingPointInput.value = "";
-            })
-        }
-        )();
+            });
+
+            // Advanced settings toggle
+            advHeader.addEventListener('click', () => {
+                const isHidden = advContent.style.display !== 'flex';
+                advContent.style.display = isHidden ? 'flex' : 'none';
+                advChev.style.transform = isHidden ? '' : 'rotate(-90deg)';
+            });
+        })();
     </script>
 </div>

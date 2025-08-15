@@ -192,7 +192,7 @@ const findNearestColorId = (c) => {
 const startWplaceBot = async ({ width, height }, imageUrl) => {
     console.log("Starting Wplace Bot...");
 
-    const config = getCurrentDrawingConfig();
+    let config = getCurrentDrawingConfig();
     const startPoint = config && config.startPoint ? config.startPoint : getCurrentTileAndPixel();
 
     if (!startPoint) {
@@ -207,16 +207,42 @@ const startWplaceBot = async ({ width, height }, imageUrl) => {
     try {
         while (wplaceBotState.running) {
 
+            let reloadPageTimeout = null;
+            if (!isContextReady()) {
+                reloadPageTimeout = setTimeout(() => { 
+                    if (!wplaceBotState.running || isContextReady()) {
+                        // Context is already ready.
+                        return;
+                    }
+
+                    console.log("Wplace bot didn't recieve a captcha for 60 seconds, reloading the page.");
+                    config = getCurrentDrawingConfig();
+                    config.shouldRunAtStart = true;
+                    setCurrentDrawingConfig(config);
+
+                    window.location.reload();
+                }, 60 * 1000);
+            }
+
             // First wait for the captcha and charge to paint.
             while ((!isContextReady() || wplaceBotState.charges.count === 0) && wplaceBotState.running) {
                 await new Promise(resolve => setTimeout(resolve, 100));
             }
+            if (reloadPageTimeout) {
+                clearTimeout(reloadPageTimeout);
+            }
+
             if (!wplaceBotState.running) {
                 break;
             }
 
             // Then get the current chunk. We will place the pixels based on this information.
             const chunk = await getChunkPixels(startPoint.tile);
+            if (!chunk) {
+                // Wait some time before requesting again
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                continue;
+            }
 
             // Then rasterize our image and get the pixel data.
             const image = await getPixelsFromBase64(imageUrl);
@@ -268,11 +294,11 @@ const startWplaceBot = async ({ width, height }, imageUrl) => {
 
                     charges -= 1;
 
-                    if (coords.length > 50) {
+                    if (coords.length > 100) {
                         break;
                     }
                 }
-                if (coords.length > 50) {
+                if (coords.length > 100) {
                     break;
                 }
             }
@@ -299,9 +325,13 @@ const startWplaceBot = async ({ width, height }, imageUrl) => {
             console.log("Current charges: ", wplaceBotState.charges.count);
 
             if (wplaceBotState.charges.count === 0) {
-                    
                 const interval = setInterval(() => {
+                    if (!wplaceBotState.running) {
+                        clearInterval(interval);
+                        return;
+                    }
                     fetchCharges().then();
+                    console.log("Fetching charges");
                     if (wplaceBotState.charges.count !== 0) {
                         clearInterval(interval);
                     }

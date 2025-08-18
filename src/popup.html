@@ -129,6 +129,17 @@
             gap: 10px;
         }
 
+        .wplace-bot__row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .wplace-bot__row>.wplace-bot__label {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+
         .wplace-bot__input--readonly {
             font-size: 11px;
         }
@@ -156,7 +167,7 @@
             -khtml-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
-            user-select: none; 
+            user-select: none;
         }
 
         .wplace-bot__advancedContent {
@@ -215,7 +226,7 @@
         </div>
 
         <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;">
-            <input id="lockAspectRatioInput" type="checkbox" style="width:14px;height:14px;"/>
+            <input id="lockAspectRatioInput" type="checkbox" style="width:14px;height:14px;" />
             <span>Lock aspect ratio</span>
         </label>
 
@@ -239,7 +250,8 @@
         </label>
 
         <div id="advancedHeader" class="wplace-bot__advancedHeader">
-            <svg id="advancedChev" class="wplace-bot__chev" viewBox="0 0 24 24" style="transform:rotate(-90deg)" fill="none">
+            <svg id="advancedChev" class="wplace-bot__chev" viewBox="0 0 24 24" style="transform:rotate(-90deg)"
+                fill="none">
                 <path d="M8 9l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
                     stroke-linejoin="round" />
             </svg>
@@ -260,7 +272,7 @@
             <div class="wplace-bot__row">
                 <label class="wplace-bot__label" style="flex:1;">
                     <span>Gamma</span>
-                    <input id="gammaInput" type="number" step="0.1" value="1.0" class="wplace-bot__input"/>
+                    <input id="gammaInput" type="number" step="0.1" value="1.0" class="wplace-bot__input" />
                 </label>
                 <label class="wplace-bot__label" style="flex:1;">
                     <span>Ordered size</span>
@@ -272,14 +284,16 @@
                     </select>
                 </label>
             </div>
-            
+
             <div class="wplace-bot__row" style="display: flex;gap: 10px;">
                 <label class="wplace-bot__label" style="flex:1 1 50%;">
                     <span>Strength (0..1)</span>
-                    <input id="strengthInput" type="range" min="0" max="1" step="0.01" value="1" class="wplace-bot__input" style="cursor:pointer;padding: 0px;"/>
+                    <input id="strengthInput" type="range" min="0" max="1" step="0.01" value="1"
+                        class="wplace-bot__input" style="cursor:pointer;padding: 0px;" />
                 </label>
-                <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;margin-top: 15px;">
-                    <input id="serpentineInput" type="checkbox" style="width:14px;height:14px;"/>
+                <label class="wplace-bot__label"
+                    style="flex:1;flex-direction: row; align-items: center; gap: 6px;margin-top: 15px;">
+                    <input id="serpentineInput" type="checkbox" style="width:14px;height:14px;" />
                     <span>Serpentine</span>
                 </label>
             </div>

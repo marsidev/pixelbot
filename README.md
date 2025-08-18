@@ -1,6 +1,6 @@
 
 # WPlace Bot - Auto Pixel Firefox Extension
-Download the extension by clicking [here](https://github.com/kalintas/wplace-bot/releases/latest/download/wplace-bot.xpi). Install the extension and open wplace.live on firefox. For now the extension only works on firefox. 
+Download the extension by clicking [here](https://github.com/kalintas/wplace-bot/releases/latest/download/wplace-bot.xpi). Install the extension and open wplace.live on firefox and hit refresh. For now the extension only works on firefox. 
 
 ![Screenshot](https://github.com/kalintas/wplace-bot/blob/main/screenshots/meyan.png?raw=true)
 

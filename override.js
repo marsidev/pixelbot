@@ -12,9 +12,9 @@ const NODE_FOLDER = BASE_FOLDER + '/_app/immutable/nodes/';
 if (!fs.existsSync(BASE_FOLDER)) fs.mkdirSync(BASE_FOLDER, { recursive: true });
 if (!fs.existsSync(NODE_FOLDER)) fs.mkdirSync(NODE_FOLDER, { recursive: true });
 
-const hooksScript = fs.readFileSync("hooks.js", 'utf-8');
-const popupHtml = fs.readFileSync("popup.html", 'utf-8');
-const popupScript = fs.readFileSync("popup.js", 'utf-8');
+const hooksScript = fs.readFileSync("./src/hooks.js", 'utf-8');
+const popupHtml = fs.readFileSync("./src/popup.html", 'utf-8');
+const popupScript = fs.readFileSync("./src/popup.js", 'utf-8');
 
 function runOverride() {
     fetch(BASE_URL)

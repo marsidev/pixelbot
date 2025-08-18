@@ -2,7 +2,7 @@
 document.addEventListener("DOMContentLoaded", () => {
 
     const injectScript = (name) => {
-        fetch(browser.runtime.getURL(`${name}.js`))
+        fetch(browser.runtime.getURL(`./src/${name}.js`))
             .then(r => r.text())
             .then(hooksScript => {
                 const id = `wplaceBotScript__${name}`;
@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     injectScript('hooks');
 
-    fetch(browser.runtime.getURL('popup.html'))
+    fetch(browser.runtime.getURL('./src/popup.html'))
         .then(r => r.text())
         .then(popupHtml => {
             if (!document.getElementById('wplaceBot')) {

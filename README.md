@@ -4,6 +4,13 @@ Download the extension by clicking [here](https://github.com/kalintas/wplace-bot
 
 ![Screenshot](https://github.com/kalintas/wplace-bot/blob/main/screenshots/meyan.png?raw=true)
 
+
+You can see the logs of the bot by pressing F12 and going to console. If the bot showing "Captcha is not ready", means you have to wait until you can paint more pixels. Bot will automatically refresh the page if it can't receive a captcha under 60 seconds.
+
+![Screenshot](https://github.com/kalintas/wplace-bot/blob/main/screenshots/finished.png?raw=true)
+
+Bot will go to anti-invasion mode when the pixel art is finished. Then you may keep open the bot to preserve you pixel art.
+
 Optionally because the bot is written for the firefox you can use [Firefox Containers](https://addons.mozilla.org/en-US/firefox/addon/multi-account-containers/) to open up multiple accounts in different tabs. And open the bot in each tab allowing you to farm with multiple accounts. 
 You can copy the current config via the 📋 emoji then paste it via the 📥 emoji on the bot.
 

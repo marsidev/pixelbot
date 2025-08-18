@@ -6,7 +6,7 @@ cd wplace-bot
 npm install
 npx webpack
 ```
-The extension is ready to use as a temporary extension. Open firefox, go to about:debugging#/runtime/this-firefox. Press Load Temporary Add-on, and select the manifest.json file. Go to wplace.live, hit refresh and start using.
+The extension is ready to use as a temporary extension. Open firefox, go to ```about:debugging#/runtime/this-firefox```. Press Load Temporary Add-on, and select the manifest.json file. Go to wplace.live, hit refresh and start using.
 
 # Signing the extension
 To sign the extension and make it permanent. Use the web-ext cli. First do the previous steps. Then run:

@@ -1,4 +1,12 @@
 
+# WPlace Bot - Auto Pixel Firefox Extension
+Download the extension by clicking [here](https://github.com/kalintas/wplace-bot/releases/download/release/wplace-bot.xpi). Install the extension and open wplace.live on firefox. For now the extension only works on firefox. 
+
+![Screenshot](https://github.com/kalintas/wplace-bot/blob/main/screenshots/meyan.png?raw=true)
+
+Optionally because the bot is written for the firefox you can use [Firefox Containers](https://addons.mozilla.org/en-US/firefox/addon/multi-account-containers/) to open up multiple accounts in different tabs. And open the bot in each tab allowing you to farm with multiple accounts. 
+You can copy the current config via the 📋 emoji then paste it via the 📥 emoji on the bot.
+
 # Building the firefox extension
 ```
 git clone https://github.com/kalintas/wplace-bot
@@ -25,3 +33,6 @@ node override.js
 ```
 Then open chrome and go to https://wplace.live/. Open dev tools with F12. Go to "Sources" tab, click on the "Overrides" sub tab. Click "Select folder for overrides" then select this repositories folder. It iss crucial that you select the right folder. It should be the folder of this project, not the wplace.live folder. Hit refresh and start using.
 If the website breaks at some point run the ```node override.js``` command and refresh the page.
+
+# ⚠️ Disclaimer
+This tool is for educational purposes only. I am not responsible for any bans, suspensions, or consequences that may occur from using this bot on wplace.live. Use at your own risk.

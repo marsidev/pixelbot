@@ -112,34 +112,6 @@ const hookPaint = async (chunk, coords, colors) => {
 window.setWplaceBotHook = setWplaceBotHook;
 window.setWplaceBotCurrentTileAndPixel = setWplaceBotCurrentTileAndPixel;
 
-
-const getPixelsFromBase64 = async (base64Url) => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = function () {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-
-            ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, img.width, img.height);
-
-            resolve({
-                pixels: imageData.data,
-                width: img.width,
-                height: img.height
-            });
-        };
-
-        img.onerror = function () {
-            reject(new Error("Failed to load image."));
-        };
-
-        img.src = base64Url;
-    });
-};
-
 const getChunkPixels = async ({ x, y }) => {
     const response = await fetch(BASE_URL + `/files/s${SESSION}/tiles/${x}/${y}.png`);
     if (!response.ok) {
@@ -189,7 +161,7 @@ const findNearestColorId = (c) => {
     return null;
 }
 
-const startWplaceBot = async ({ width, height }, imageUrl) => {
+const startWplaceBot = async ({ width, height }, indicesArray) => {
     console.log("Starting Wplace Bot...");
 
     let config = getCurrentDrawingConfig();
@@ -244,53 +216,44 @@ const startWplaceBot = async ({ width, height }, imageUrl) => {
                 continue;
             }
 
-            // Then rasterize our image and get the pixel data.
-            const image = await getPixelsFromBase64(imageUrl);
-
             let coords = [];
             let colors = [];
 
             let charges = Math.floor(wplaceBotState.charges.count);
 
             // Add the points we will paint.
-            for (let y = 0; y < image.height && charges > 0; ++y) {
-                for (let x = 0; x < image.width && charges > 0; ++x) {
+            for (let y = 0; y < height && charges > 0; ++y) {
+                for (let x = 0; x < width && charges > 0; ++x) {
+                    const imagePixelId = indicesArray[y][x];
 
-                    const imageR = image.pixels[(x + image.width * y) * 4];
-                    const imageG = image.pixels[(x + image.width * y) * 4 + 1];
-                    const imageB = image.pixels[(x + image.width * y) * 4 + 2];
-                    const imageA = image.pixels[(x + image.width * y) * 4 + 3];
+                    // Skip transparent.
+                    if (imagePixelId === 0) {
+                        continue;
+                    }
 
+                    // Fetch the chunk colors.
                     const chunkR = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4];
                     const chunkG = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 1];
                     const chunkB = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 2];
                     const chunkA = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 3];
 
-                    if (imageA === 0) {
-                        continue;
-                    }
+                    const newPixelColor = ALL_COLORS_BY_ID[imagePixelId];
 
-                    const newPixelId = findNearestColorId({ r: imageR, g: imageG, b: imageB, a: imageA });
-
-                    if (!newPixelId) {
-                        console.error("Wplace bot: input image had invalid colors.");
+                    if (!newPixelColor) {
+                        console.error("Wplace bot: input image had invalid color, imagePixelId: ", imagePixelId);
                         // Skip this pixel.
-                        continue;
-                    }
-                    // Skip transparent pixel.
-                    if (newPixelId === "0") {
                         continue;
                     }
 
                     const oldPixelId = findNearestColorId({ r: chunkR, g: chunkG, b: chunkB, a: chunkA });
-                    if (oldPixelId === newPixelId) {
+                    if (parseInt(oldPixelId) === imagePixelId) {
                         // We don't have to color this pixel.
                         // Its already been colored.
                         continue;
                     }
 
                     coords.push(x + startPoint.pixel.x, y + startPoint.pixel.y);
-                    colors.push(parseInt(newPixelId, 10));
+                    colors.push(imagePixelId);
 
                     charges -= 1;
 

@@ -2,3 +2,7 @@ node_modules
 wplace.live
 .DS_Store
 .vscode
+*.xpi
+.web-extension-id
+.amo-upload-uuid
+dist

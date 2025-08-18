@@ -1,0 +1,39 @@
+{
+  "manifest_version": 2,
+  "name": "Wplace Bot",
+  "version": "1.0",
+  "description": "Wplace automation bot",
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "webRequestFilterResponse",
+    "activeTab",
+    "*://wplace.live/*"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://wplace.live/*"
+      ],
+      "js": [
+        "remove-service-worker.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://wplace.live/*"
+      ],
+      "js": [
+        "injector.js"
+      ],
+      "run_at": "document_end"
+    }
+  ]
+}

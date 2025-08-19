@@ -230,12 +230,19 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
                     if (imagePixelId === 0) {
                         continue;
                     }
+                    let chunkPixelIndex = (x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4;
+                    if (chunk.width > 1000) {
+                        // Chunk should always be 1000.
+                        // This means Blue Marble user script is open.
+                        // Multiply the chunk indices by 3.
+                        chunkPixelIndex *= 3;
+                    }
 
                     // Fetch the chunk colors.
-                    const chunkR = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4];
-                    const chunkG = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 1];
-                    const chunkB = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 2];
-                    const chunkA = chunk.pixels[(x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4 + 3];
+                    const chunkR = chunk.pixels[chunkPixelIndex];
+                    const chunkG = chunk.pixels[chunkPixelIndex + 1];
+                    const chunkB = chunk.pixels[chunkPixelIndex + 2];
+                    const chunkA = chunk.pixels[chunkPixelIndex + 3];
 
                     const newPixelColor = ALL_COLORS_BY_ID[imagePixelId];
 

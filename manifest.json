@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Wplace Bot",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Wplace automation bot",
   "permissions": [
     "webRequest",
@@ -10,6 +10,14 @@
     "activeTab",
     "*://wplace.live/*"
   ],
+  "web_accessible_resources": [
+    "./src/hooks.js",
+    "./src/popup.html",
+    "./src/popup.js"
+  ],
+  "icons": {
+    "128": "images/icon.png"
+  },
   "background": {
     "scripts": [
       "background.js"

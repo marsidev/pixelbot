@@ -6,13 +6,7 @@
     "es-main": "^1.4.0",
     "jsdom": "^26.1.0",
     "node-fetch": "^3.3.2",
-    "process": "^0.11.10",
-    "puppeteer": "^24.16.2",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "puppeteer-real-browser": "^1.4.3",
-    "user-agent": "^1.0.4",
-    "user-agents": "^1.1.632"
+    "process": "^0.11.10"
   },
   "devDependencies": {
     "@babel/core": "^7.28.3",

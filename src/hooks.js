@@ -70,7 +70,7 @@ const fetchCharges = async () => {
         };
         return response;
     }
-        
+
     console.error("WplaceBot: Failed to fetch user info.");
     return null;
 };
@@ -161,6 +161,10 @@ const findNearestColorId = (c) => {
     return null;
 }
 
+const sleepForMs = async (milliseconds) => {
+    return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
 const startWplaceBot = async ({ width, height }, indicesArray) => {
     console.log("Starting Wplace Bot...");
 
@@ -177,11 +181,16 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
     setCurrentDrawingConfig(config);
 
     try {
-        while (wplaceBotState.running) {
+        await fetchCharges();  
+    } catch (exception) {
+        console.warn("Wplacebot: Could not fetch charges: ", exception);
+    }
 
+    while (wplaceBotState.running) {
+        try {
             let reloadPageTimeout = null;
             if (!isContextReady()) {
-                reloadPageTimeout = setTimeout(() => { 
+                reloadPageTimeout = setTimeout(() => {
                     if (!wplaceBotState.running || isContextReady()) {
                         // Context is already ready.
                         return;
@@ -198,7 +207,7 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
 
             // First wait for the captcha and charge to paint.
             while ((!isContextReady() || wplaceBotState.charges.count === 0) && wplaceBotState.running) {
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await sleepForMs(100);
             }
             if (reloadPageTimeout) {
                 clearTimeout(reloadPageTimeout);
@@ -212,7 +221,7 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
             const chunk = await getChunkPixels(startPoint.tile);
             if (!chunk) {
                 // Wait some time before requesting again
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await sleepForMs(2000);
                 continue;
             }
 
@@ -263,22 +272,15 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
                     colors.push(imagePixelId);
 
                     charges -= 1;
-
-                    if (coords.length > 100) {
-                        break;
-                    }
-                }
-                if (coords.length > 100) {
-                    break;
                 }
             }
 
             if (coords.length === 0 && colors.length === 0 && charges > 0) {
                 console.log("Wplace Bot finished! Keep the bot open to avoid invasions.");
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                await sleepForMs(5000);
                 continue;
             }
-            
+
             console.log("Sending paint request: ", coords, " ", colors);
             // Finally paint.
             const response = await hookPaint(startPoint.tile, coords, colors);
@@ -296,23 +298,21 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
 
             if (wplaceBotState.charges.count === 0) {
                 const interval = setInterval(() => {
-                    if (!wplaceBotState.running) {
+                    if (!wplaceBotState.running || wplaceBotState.charges.count !== 0) {
                         clearInterval(interval);
                         return;
                     }
-                    fetchCharges().then();
-                    console.log("Fetching charges");
-                    if (wplaceBotState.charges.count !== 0) {
-                        clearInterval(interval);
-                    }
+                    fetchCharges().then(() => console.log("Fetched charges: ", wplaceBotState.charges.count));
                 }, 30 * 1000);
             }
 
             // Wait a bit before sending a request again
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await sleepForMs(500);
+        } catch (exception) {
+            console.error(exception);
+            await sleepForMs(5000);
+            await fetchCharges();
         }
-    } catch (exception) {
-        console.error(exception);
     }
 
     console.log("Wplace Bot stopped.");

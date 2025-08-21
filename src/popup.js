@@ -199,6 +199,7 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
         container.style.border = '1px solid #e5e7eb';
         try {
             const ditherResult = await ditherImageFromUrl(originalImageUrl, w, h, {
+                paletteDefs: useDefaultColorsInput.checked ? null : getOwnedColors(),
                 algorithm: advDitherAlgo.value,
                 gamma: advGammaInput.value,
                 strength: advStrengthInput.value,
@@ -267,6 +268,7 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
     advStrengthInput.addEventListener('input', performDither);
     advOrderedSizeInput.addEventListener('input', performDither);
     advSerpentineInput.addEventListener('input', performDither);
+    useDefaultColorsInput.addEventListener('input', performDither);
 
     wInput.addEventListener('change', updateImageHeight);
     hInput.addEventListener('change', updateImageWidth);
@@ -323,5 +325,14 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
         });
     });
 
+    function getOwnedColors() {
+        const extraColorsBitmap = wplaceBotState.userInfo.extraColorsBitmap;
+        const PREMIUM_COLORS_LOWER_BOUND = 32;
 
+        return Object.keys(ALL_COLORS_BY_ID)
+            .filter(id => id < PREMIUM_COLORS_LOWER_BOUND
+                || (id >= PREMIUM_COLORS_LOWER_BOUND
+                    && (extraColorsBitmap & (1 << (id - PREMIUM_COLORS_LOWER_BOUND))) !== 0))
+            .map(id => ({ id: Number(id), ...ALL_COLORS_BY_ID[id] }));
+    }
 })();

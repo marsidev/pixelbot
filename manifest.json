@@ -16,7 +16,7 @@
     "./src/popup.js"
   ],
   "icons": {
-    "128": "images/icon.png"
+    "96": "images/icon96.png"
   },
   "background": {
     "scripts": [

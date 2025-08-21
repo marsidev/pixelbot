@@ -58,7 +58,7 @@ const getCurrentTileAndPixel = () => {
     };
 };
 
-const fetchCharges = async () => {
+const fetchUserInfo = async () => {
     let response = await fetchApi('/me');
     if (response && response.ok) {
         response = await response.json();
@@ -68,6 +68,12 @@ const fetchCharges = async () => {
             max: Math.floor(response.charges.max),
             cooldownMs: response.charges.cooldownMs
         };
+        if (leftCharges) {
+            leftCharges.innerText = `Charges: ${wplaceBotState.charges.count}`;
+        }
+
+        window.dispatchEvent(new CustomEvent("wplace:userInfoReady", { detail: wplaceBotState }));
+
         return response;
     }
 
@@ -75,7 +81,7 @@ const fetchCharges = async () => {
     return null;
 };
 
-fetchCharges().then((response) => console.log("Fetched user info:", response));
+fetchUserInfo().then((response) => console.log("Fetched user info:", response));
 
 const isContextReady = () => Boolean(getCaptchaContext());
 
@@ -165,6 +171,22 @@ const sleepForMs = async (milliseconds) => {
     return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
 
+const autoFetchCharges = async () => {
+    // Fetch charges to get the most updated value.
+    await fetchUserInfo();
+    console.log("Current charges: ", wplaceBotState.charges.count);
+
+    if (wplaceBotState.charges.count === 0) {
+        const interval = setInterval(() => {
+            if (!wplaceBotState.running || wplaceBotState.charges.count !== 0) {
+                clearInterval(interval);
+                return;
+            }
+            fetchUserInfo().then(() => console.log("Fetched charges: ", wplaceBotState.charges.count));
+        }, 30 * 1000);
+    }
+}
+
 const startWplaceBot = async ({ width, height }, indicesArray) => {
     console.log("Starting Wplace Bot...");
 
@@ -181,7 +203,7 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
     setCurrentDrawingConfig(config);
 
     try {
-        await fetchCharges();  
+        await autoFetchCharges();  
     } catch (exception) {
         console.warn("Wplacebot: Could not fetch charges: ", exception);
     }
@@ -293,25 +315,14 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
             }
 
             // Fetch charges to get the most updated value.
-            await fetchCharges();
-            console.log("Current charges: ", wplaceBotState.charges.count);
-
-            if (wplaceBotState.charges.count === 0) {
-                const interval = setInterval(() => {
-                    if (!wplaceBotState.running || wplaceBotState.charges.count !== 0) {
-                        clearInterval(interval);
-                        return;
-                    }
-                    fetchCharges().then(() => console.log("Fetched charges: ", wplaceBotState.charges.count));
-                }, 30 * 1000);
-            }
+            await autoFetchCharges();
 
             // Wait a bit before sending a request again
             await sleepForMs(500);
         } catch (exception) {
             console.error(exception);
             await sleepForMs(5000);
-            await fetchCharges();
+            await fetchUserInfo();
         }
     }
 

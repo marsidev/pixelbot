@@ -1,12 +1,4 @@
-fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
-    .then(res => res.text())
-    .then(code => {
-        const script = document.createElement("script");
-        script.textContent = code;
-        document.body.appendChild(script);
-    })
-    .catch(err => console.error("Failed to load script:", err));
-(function () {
+const wplaceBotPopupInit = () => {
     const container = document.getElementById('wplaceBot');
     const header = document.getElementById('dragHeader');
     const previewImg = document.getElementById('previewImg');
@@ -30,12 +22,12 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
     const lockAspectRatioInput = document.getElementById('lockAspectRatioInput');
     const copyConfigBtn = document.getElementById('copyConfig');
     const pasteConfigBtn = document.getElementById('pasteConfig');
+    const autoStartCheckbox = document.getElementById("autoStartId");
 
     let aspectRatio = 0;
     let indicesArray = null;
     let isDragging = false, offsetX = 0, offsetY = 0, startX = 0, startY = 0;
     let originalImageUrl = null;
-    let lastDitherTimeout = null;
 
     function loadConfig() {
         const config = getCurrentDrawingConfig();
@@ -43,26 +35,6 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
             return false;
         }
 
-        if (config.ditherDataUrl) {
-            previewImg.src = config.ditherDataUrl;
-            previewImg.style.display = "block";
-            previewImgPlaceholder.style.display = "none";
-        }
-        if (config.ditherIndicesArray) {
-            indicesArray = config.ditherIndicesArray;
-        }
-        if (config.height) {
-            hInput.value = config.height;
-        }
-        if (config.width) {
-            wInput.value = config.width;
-        }
-        if (config.width && config.height) {
-            const pxCount = config.width * config.height;
-            pxCountInput.value = pxCount;
-            totalTimeInput.value = toTimeString(pxCount / 2);
-            aspectRatio = config.width / config.height;
-        }
         if (config.startPoint) {
             startingPointInput.value = `Chunk: { x: ${config.startPoint.tile.x}, y: ${config.startPoint.tile.y} }, Pixel: { x: ${config.startPoint.pixel.x}, y: ${config.startPoint.pixel.y} }`;
         }
@@ -73,6 +45,10 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
             config.shouldRunAtStart = false;
             setCurrentDrawingConfig(config);
             // Start the bot first thing.
+            callStartWplaceBot();
+        }
+        if (config.autoStart) {
+            autoStartCheckbox.checked = config.autoStart;
             callStartWplaceBot();
         }
         if (config.gamma) {
@@ -87,6 +63,30 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
         if (config.serpentine) {
             advSerpentineInput.value = config.serpentine;
         }
+        if (config.height) {
+            hInput.value = config.height;
+        }
+        if (config.width) {
+            wInput.value = config.width;
+        }
+        if (config.aspectRatio) {
+            aspectRatio = config.aspectRatio;
+        }
+        if (config.useDefaultColorsOnly) {
+            useDefaultColorsInput.checked = config.useDefaultColorsOnly;
+        }
+
+        if (config.width && config.height) {
+            const pxCount = config.width * config.height;
+            pxCountInput.value = pxCount;
+            totalTimeInput.value = toTimeString(pxCount / 2);
+            if (config.imageUrl) {
+                originalImageUrl = config.imageUrl;
+                if (wplaceBotState.userInfo) {
+                    performDither(wInput.value, hInput.height);
+                } 
+            }
+        }
 
         return true;
     }
@@ -97,17 +97,23 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
         const config = getCurrentDrawingConfig();
         config.width = width;
         config.height = height;
-        config.ditherDataUrl = previewImg.src;
-        config.ditherIndicesArray = indicesArray;
+        config.imageUrl = originalImageUrl;
         config.ditherAlgorithm = advDitherAlgo.value;
         config.gamma = advGammaInput.value;
         config.orderedSize = advOrderedSizeInput.value;
         config.strength = advStrengthInput.value;
         config.serpentine = advSerpentineInput.value;
+        config.aspectRatio = aspectRatio;
+        config.useDefaultColorsOnly = useDefaultColorsInput.checked;
         setCurrentDrawingConfig(config);
     }
 
     loadConfig();
+    
+    window.addEventListener('wplace:userInfoReady', () => {
+        // Re-dither the image.
+        performDither(wInput.value, hInput.height);
+    });
 
     function setCollapsed(v) {
         container.setAttribute('data-collapsed', String(v));
@@ -193,9 +199,6 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
         }
         const w = parseInt(wInput.value, 10);
         const h = parseInt(hInput.value, 10);
-        const pxCount = w * h;
-        pxCountInput.value = pxCount;
-        totalTimeInput.value = toTimeString(pxCount / 2);
         container.style.border = '1px solid #e5e7eb';
         try {
             const ditherResult = await ditherImageFromUrl(originalImageUrl, w, h, {
@@ -207,6 +210,20 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
                 orderedSize: parseInt(advOrderedSizeInput.value)
             });
             indicesArray = ditherResult.indicesArray;
+
+            // Calculate pixels to be colored. (The whole image)
+            let pixelCount = 0;
+            for (let y = 0; y < h; ++y) {
+                for (let x = 0; x < w; ++x) {
+                    // Skip transparent pixels.
+                    if (indicesArray[y][x] !== 0) {
+                        pixelCount += 1;
+                    }
+                }
+            }
+            pxCountInput.value = pixelCount;
+            totalTimeInput.value = toTimeString(pixelCount / 2);
+
             previewImg.src = ditherResult.dataUrl;
             previewImg.style.display = "block";
             previewImgPlaceholder.style.display = "none";
@@ -225,43 +242,48 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
 
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files && e.target.files[0];
-        if (!file) return;
-        if (originalImageUrl) URL.revokeObjectURL(originalImageUrl);
-        originalImageUrl = URL.createObjectURL(file);
-        const img = new Image();
-        img.onload = () => {
+        if (!file) { 
+            return;
+        }
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                wInput.value = img.width;
+                hInput.value = img.height;
+                aspectRatio = img.width / img.height;
+                performDither(img.width, img.height);
+            };
+            img.src = reader.result;
             clearWplaceBotState();
-            wInput.value = img.width;
-            hInput.value = img.height;
-            aspectRatio = img.width / img.height;
-            performDither(img.width, img.height);
+            originalImageUrl = reader.result;
         };
-        img.src = originalImageUrl;
+        reader.onerror = (error) => {
+            console.error("Could not load the image: ", error);
+        };
     });
 
     function updateImageHeight(event) {
-        if (!validateInputs()) {
-            return;
-        }
-        if (lockAspectRatioInput.checked) {
+        if (lockAspectRatioInput.checked && aspectRatio !== 0) {
             hInput.value = Math.round(event.target.value / aspectRatio);
-        } else {
-            aspectRatio = event.target.value / parseInt(hInput.value);
         }
     }
     function updateImageWidth(event) {
-        if (!validateInputs()) {
-            return;
-        }
-        if (lockAspectRatioInput.checked) {
+        if (lockAspectRatioInput.checked && aspectRatio !== 0) {
             wInput.value = Math.round(event.target.value / aspectRatio);
-        } else {
-            aspectRatio = event.target.value / parseInt(hInput.value);
         }
     }
 
     wInput.addEventListener('input', (event) => { updateImageHeight(event); performDither() });
     hInput.addEventListener('input', (event) => { updateImageWidth(event); performDither(); });
+
+    lockAspectRatioInput.addEventListener('change', (event) => {
+        if (lockAspectRatioInput.checked) {
+            hInput.value = Math.round(wInput.value / aspectRatio);
+            performDither();
+        }   
+    })
 
     advDitherAlgo.addEventListener('input', performDither);
     advGammaInput.addEventListener('input', performDither);
@@ -272,6 +294,12 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
 
     wInput.addEventListener('change', updateImageHeight);
     hInput.addEventListener('change', updateImageWidth);
+
+    autoStartCheckbox.addEventListener('input', (event) => {
+        const config = getCurrentDrawingConfig();
+        config.autoStart = autoStartCheckbox.checked;
+        setCurrentDrawingConfig(config);
+    });
 
     function callStartWplaceBot() {
         if (validateInputs()) {
@@ -301,6 +329,8 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
         pxCountInput.value = "";
         totalTimeInput.value = "";
         startingPointInput.value = "";
+        autoStartCheckbox.checked = false;
+        useDefaultColorsInput.checked = false;
     }
 
     clearBtn.addEventListener('click', clearWplaceBotState);
@@ -335,4 +365,13 @@ fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
                     && (extraColorsBitmap & (1 << (id - PREMIUM_COLORS_LOWER_BOUND))) !== 0))
             .map(id => ({ id: Number(id), ...ALL_COLORS_BY_ID[id] }));
     }
-})();
+};
+fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
+    .then(res => res.text())
+    .then(code => {
+        const script = document.createElement("script");
+        script.textContent = code;
+        document.body.appendChild(script);
+        wplaceBotPopupInit();
+    })
+    .catch(err => console.error("Failed to load script:", err));

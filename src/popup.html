@@ -149,6 +149,10 @@
             font-size: 10px;
             display: block;
         }
+        .wplace-bot__left-charges {
+            font-size: 12px;
+            display: block;
+        }
 
         .wplace-bot__start-btn {
             padding: 8px 12px;
@@ -259,10 +263,16 @@
         </div>
 
         <div id="advancedContent" class="wplace-bot__advancedContent">
-            <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;">
-                <input id="useDefaultColorsInput" type="checkbox" style="width:14px;height:14px;" />
-                <span>Use default colors only</span>
-            </label>
+            <div class="wplace-bot__row">
+                <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;">
+                    <input id="useDefaultColorsInput" type="checkbox" style="width:14px;height:14px;" />
+                    <span>Use default colors only</span>
+                </label>
+                <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;">
+                    <input id="autoStartId" type="checkbox" style="width:14px;height:14px;" />
+                    <span>Auto start</span>
+                </label> 
+            </div>
 
             <label class="wplace-bot__label">
                 <span>Dithering Algorithm</span>
@@ -304,8 +314,9 @@
             </div>
         </div>
 
-
+        <span id="leftCharges" class="wplace-bot__left-charges"></span>
         <span id="captchaWarningText" class="wplace-bot__warning">⚠️ Captcha is not ready</span>
+
         <button id="startBtn" class="wplace-bot__start-btn">Start</button>
     </div>
 </div>

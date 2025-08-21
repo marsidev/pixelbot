@@ -22,7 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(r => r.text())
         .then(popupHtml => {
             if (!document.getElementById('wplaceBot')) {
-                document.body.insertAdjacentHTML('afterbegin', popupHtml);
+                const popup = document.createElement('div');
+                popup.innerHTML = popupHtml;
+                document.body.appendChild(popup);
                 injectScript('popup');
             }
         })

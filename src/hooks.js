@@ -38,14 +38,19 @@ const setWplaceBotHook = (context, callback) => {
 };
 
 const setWplaceBotCurrentTileAndPixel = (tile, pixel) => {
-    const startingPointInput = document.getElementById('startingPointInput');
-    if (!wplaceBotState.running) {
-        startingPointInput.value = `Chunk: { x: ${tile[0]}, y: ${tile[1]} }, Pixel: { x: ${pixel[0]}, y: ${pixel[1]} }`;
-    }
-
     window[CURRENT_TILE_IDENT] = tile;
     window[CURRENT_PIXEL_IDENT] = pixel;
     console.log("Set current tile and pixel:", tile, pixel);
+
+    const startingPointInput = document.getElementById('startingPointInput');
+    if (!wplaceBotState.running) {
+        // Change start point
+        startingPointInput.value = `Chunk: { x: ${tile[0]}, y: ${tile[1]} }, Pixel: { x: ${pixel[0]}, y: ${pixel[1]} }`;
+        // Save it to the config.
+        const config = getCurrentDrawingConfig();
+        config.startPoint = getCurrentTileAndPixel();
+        setCurrentDrawingConfig(config);
+    }
 };
 const getCurrentTileAndPixel = () => {
     if (!window[CURRENT_PIXEL_IDENT] || !window[CURRENT_TILE_IDENT]) {
@@ -190,18 +195,15 @@ const autoFetchCharges = async () => {
 const startWplaceBot = async ({ width, height }, indicesArray) => {
     console.log("Starting Wplace Bot...");
 
-    let config = getCurrentDrawingConfig();
-    const startPoint = config && config.startPoint ? config.startPoint : getCurrentTileAndPixel();
-
-    if (!startPoint) {
+    const config = getCurrentDrawingConfig();
+    if (!config || !config.startPoint) {
         console.error("Wplacebot: Select a point on the map to start the bot");
         wplaceBotState.running = false;
         return;
     }
-
-    config.startPoint = startPoint;
-    setCurrentDrawingConfig(config);
-
+    const startPoint = config.startPoint;
+    console.log(startPoint);
+    
     try {
         await autoFetchCharges();  
     } catch (exception) {
@@ -240,29 +242,66 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
             }
 
             // Then get the current chunk. We will place the pixels based on this information.
-            const chunk = await getChunkPixels(startPoint.tile);
-            if (!chunk) {
-                // Wait some time before requesting again
-                await sleepForMs(2000);
-                continue;
-            }
+            const chunks = [ null, null, null, null ];
+            let currentChunkIndex = 0;
 
-            let coords = [];
-            let colors = [];
+            let coords = [ [], [], [], [] ];
+            let colors = [ [], [], [], [] ];
 
             let charges = Math.floor(wplaceBotState.charges.count);
+
+            const CHUNK_SIZE = 1000;
 
             // Add the points we will paint.
             for (let y = 0; y < height && charges > 0; ++y) {
                 for (let x = 0; x < width && charges > 0; ++x) {
                     const imagePixelId = indicesArray[y][x];
-
+                    
                     // Skip transparent.
                     if (imagePixelId === 0) {
                         continue;
                     }
-                    let chunkPixelIndex = (x + startPoint.pixel.x + (chunk.width * (y + startPoint.pixel.y))) * 4;
-                    if (chunk.width > 1000) {
+                    let chunkX = x + startPoint.pixel.x;
+                    let chunkY = y + startPoint.pixel.y;
+
+                    if (chunkX >= CHUNK_SIZE && chunkY >= CHUNK_SIZE) {
+                        // Fetch the right down chunk
+                        currentChunkIndex = 3;
+                        if (!chunks[currentChunkIndex]) {
+                            chunks[currentChunkIndex] = await getChunkPixels({ x: startPoint.tile.x + 1, y: startPoint.tile.y + 1 });
+                        }
+                        chunkX -= CHUNK_SIZE;
+                        chunkY -= CHUNK_SIZE;
+                    } else if (chunkX >= CHUNK_SIZE) {
+                        // Fetch the right chunk
+                        currentChunkIndex = 1;
+                        if (!chunks[currentChunkIndex]) {
+                            chunks[currentChunkIndex] = await getChunkPixels({ x: startPoint.tile.x + 1, y: startPoint.tile.y });
+                        }
+                        chunkX -= CHUNK_SIZE;
+                    } else if (chunkY >= CHUNK_SIZE) {
+                        // Fetch the down chunk
+                        currentChunkIndex = 2;
+                        if (!chunks[currentChunkIndex]) {
+                            chunks[currentChunkIndex] = await getChunkPixels({ x: startPoint.tile.x, y: startPoint.tile.y + 1 });
+                        }
+                        chunkY -= CHUNK_SIZE;
+                    } else {
+                        currentChunkIndex = 0;
+                        if (!chunks[currentChunkIndex]) {
+                            chunks[currentChunkIndex] = await getChunkPixels(startPoint.tile);
+                        }
+                    }
+
+                    const chunk = chunks[currentChunkIndex];
+
+                    if (!chunk) {
+                        // Could not fetch the chunk
+                        throw new Error();
+                    }
+
+                    let chunkPixelIndex = (chunkX + (chunk.width * chunkY)) * 4;
+                    if (chunk.width > CHUNK_SIZE) {
                         // Chunk should always be 1000.
                         // This means Blue Marble user script is open.
                         // Multiply the chunk indices by 3.
@@ -289,30 +328,48 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
                         // Its already been colored.
                         continue;
                     }
-
-                    coords.push(x + startPoint.pixel.x, y + startPoint.pixel.y);
-                    colors.push(imagePixelId);
+                    
+                    coords[currentChunkIndex].push(chunkX, chunkY);
+                    colors[currentChunkIndex].push(imagePixelId);
 
                     charges -= 1;
                 }
             }
 
-            if (coords.length === 0 && colors.length === 0 && charges > 0) {
+            if (coords.every((array) => array.length === 0) && charges > 0) {
                 console.log("Wplace Bot finished! Keep the bot open to avoid invasions.");
-                await sleepForMs(5000);
+                await sleepForMs(10000);
                 continue;
             }
 
             console.log("Sending paint request: ", coords, " ", colors);
             // Finally paint.
-            const response = await hookPaint(startPoint.tile, coords, colors);
-
-            if (!response.ok) {
-                console.error("WplaceBot: Error paint request rejected: ", response.status);
-            } else if (response.ok) {
-                let result = await response.json();
-                console.log(`Successfuly painted ${result.painted} pixels.`);
+            
+            const requests = [];
+            if (coords[0].length !== 0) {
+                requests.push(hookPaint(startPoint.tile, coords[0], colors[0]));
             }
+            if (coords[1].length !== 0) {
+                requests.push(hookPaint({ x: startPoint.tile.x + 1, y: startPoint.tile.y }, coords[1], colors[1]));
+            }
+            if (coords[2].length !== 0) {
+                requests.push(hookPaint({ x: startPoint.tile.x, y: startPoint.tile.y + 1 }, coords[2], colors[2]));
+            }
+            if (coords[3].length !== 0) {
+                requests.push(hookPaint({ x: startPoint.tile.x + 1, y: startPoint.tile.y + 1 }, coords[3], colors[3]));
+            }
+
+            const responses = await Promise.all(requests);
+
+            responses.forEach((response) => {
+                if (!response.ok) {
+                    console.error("WplaceBot: Error paint request rejected: ", response.status);
+                } else if (response.ok) {
+                    response.json().then((result) => {
+                        console.log(`Successfuly painted ${result.painted} pixels.`);
+                    });
+                }
+            })
 
             // Fetch charges to get the most updated value.
             await autoFetchCharges();

@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Wplace Bot",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Wplace automation bot",
   "permissions": [
     "webRequest",
@@ -43,5 +43,11 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{2ef7d5ae-91fe-471d-a333-4f7754aaaeff}",
+      "update_url": "https://raw.githubusercontent.com/kalintas/wplace-bot/main/update.json"
+    }
+  }
 }

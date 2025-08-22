@@ -1,6 +1,4 @@
-
-document.addEventListener("DOMContentLoaded", () => {
-
+function injectScripts() {
     const injectScript = (name) => {
         fetch(browser.runtime.getURL(`./src/${name}.js`))
             .then(r => r.text())
@@ -29,4 +27,10 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         })
         .catch(console.error);
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", injectScripts);
+} else {
+    injectScripts();
+}

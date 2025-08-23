@@ -221,9 +221,9 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
                     }
 
                     console.log("Wplace bot didn't recieve a captcha for 60 seconds, reloading the page.");
-                    config = getCurrentDrawingConfig();
-                    config.shouldRunAtStart = true;
-                    setCurrentDrawingConfig(config);
+                    let configRestart = getCurrentDrawingConfig();
+                    configRestart.shouldRunAtStart = true;
+                    setCurrentDrawingConfig(configRestart);
 
                     window.location.reload();
                 }, 60 * 1000);

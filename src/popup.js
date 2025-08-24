@@ -23,6 +23,7 @@ const wplaceBotPopupInit = () => {
     const copyConfigBtn = document.getElementById('copyConfig');
     const pasteConfigBtn = document.getElementById('pasteConfig');
     const autoStartCheckbox = document.getElementById("autoStartId");
+    const clearStartingPoint = document.getElementById('clearStartingPoint');
 
     let aspectRatio = 0;
     let indicesArray = null;
@@ -35,7 +36,7 @@ const wplaceBotPopupInit = () => {
             return false;
         }
 
-        if (config.startPoint) {
+        if (config.startPoint && config.startPoint.tile && config.startPoint.pixel) {
             startingPointInput.value = `Chunk: { x: ${config.startPoint.tile.x}, y: ${config.startPoint.tile.y} }, Pixel: { x: ${config.startPoint.pixel.x}, y: ${config.startPoint.pixel.y} }`;
         }
         if (config.ditherAlgorithm) {
@@ -114,6 +115,25 @@ const wplaceBotPopupInit = () => {
         // Re-dither the image.
         performDither(wInput.value, hInput.height);
     });
+
+    window.addEventListener('wplace:currentTileAndPixel', (event) => {
+        const startPoint = event.detail;
+        if (wplaceBotState.running) {
+            return;
+        }
+        if (startingPointInput.value === "") {
+            // Save it to the config.
+            const config = getCurrentDrawingConfig();
+            config.startPoint = startPoint;
+            setCurrentDrawingConfig(config);
+
+            // Change start point
+            startingPointInput.value = 
+                `Chunk: { x: ${startPoint.tile.x}, y: ${startPoint.tile.y} }, Pixel: { x: ${startPoint.pixel.x}, y: ${startPoint.pixel.y} }`;
+
+            updateOverlay();
+        }
+    })
 
     function setCollapsed(v) {
         container.setAttribute('data-collapsed', String(v));
@@ -229,6 +249,7 @@ const wplaceBotPopupInit = () => {
             previewImgPlaceholder.style.display = "none";
 
             saveConfig();
+            updateOverlay();
         } catch (error) {
             console.error('Dithering failed:', error);
             previewImg.src = originalImageUrl;
@@ -294,6 +315,15 @@ const wplaceBotPopupInit = () => {
 
     wInput.addEventListener('change', updateImageHeight);
     hInput.addEventListener('change', updateImageWidth);
+
+    clearStartingPoint.addEventListener('click', () => {
+        const config = getCurrentDrawingConfig();
+        config.startPoint = null;
+        setCurrentDrawingConfig(config);
+
+        startingPointInput.value = "";
+        updateOverlay(); // Deletes the overlay
+    });
 
     autoStartCheckbox.addEventListener('input', (event) => {
         const config = getCurrentDrawingConfig();
@@ -365,6 +395,17 @@ const wplaceBotPopupInit = () => {
                     && (extraColorsBitmap & (1 << (id - PREMIUM_COLORS_LOWER_BOUND))) !== 0))
             .map(id => ({ id: Number(id), ...ALL_COLORS_BY_ID[id] }));
     }
+
+    function updateOverlay() {
+        window.postMessage({
+            source: 'wplace-bot',
+            pixels: indicesArray.map((array) => array.map((index) => ALL_COLORS_BY_ID[index])),
+            width: parseInt(wInput.value), 
+            height: parseInt(hInput.value),
+            startPoint: getCurrentDrawingConfig().startPoint
+        });
+    }
+    
 };
 fetch("https://raw.githubusercontent.com/cancanakci/diHter/main/dihter.js")
     .then(res => res.text())

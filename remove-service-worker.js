@@ -1,4 +1,3 @@
-// content-script.js
 if ('serviceWorker' in navigator) {
     // Listen for any change in the controlling service worker
     navigator.serviceWorker.addEventListener('controllerchange', async () => {

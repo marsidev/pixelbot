@@ -34,3 +34,12 @@ if (document.readyState === "loading") {
 } else {
     injectScripts();
 }
+
+window.addEventListener("message", (event) => {
+    if (event.source !== window) {
+        return;
+    }
+    if (event.data && event.data.source === "wplace-bot") {
+        chrome.runtime.sendMessage(event.data);
+    }
+});

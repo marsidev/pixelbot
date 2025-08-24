@@ -42,15 +42,7 @@ const setWplaceBotCurrentTileAndPixel = (tile, pixel) => {
     window[CURRENT_PIXEL_IDENT] = pixel;
     console.log("Set current tile and pixel:", tile, pixel);
 
-    const startingPointInput = document.getElementById('startingPointInput');
-    if (!wplaceBotState.running) {
-        // Change start point
-        startingPointInput.value = `Chunk: { x: ${tile[0]}, y: ${tile[1]} }, Pixel: { x: ${pixel[0]}, y: ${pixel[1]} }`;
-        // Save it to the config.
-        const config = getCurrentDrawingConfig();
-        config.startPoint = getCurrentTileAndPixel();
-        setCurrentDrawingConfig(config);
-    }
+    window.dispatchEvent(new CustomEvent("wplace:currentTileAndPixel", { detail: getCurrentTileAndPixel() }));
 };
 const getCurrentTileAndPixel = () => {
     if (!window[CURRENT_PIXEL_IDENT] || !window[CURRENT_TILE_IDENT]) {
@@ -90,12 +82,6 @@ fetchUserInfo().then((response) => console.log("Fetched user info:", response));
 
 const isContextReady = () => Boolean(getCaptchaContext());
 
-const WPLACE_API_CLIENT_IDENT = "WPLACE_API_CLIENT_IDENT";
-const getWplaceApiClient = () => window[WPLACE_API_CLIENT_IDENT];
-const setWplaceApiClient = client => {
-    window[WPLACE_API_CLIENT_IDENT] = client;
-}
-
 const hookPaint = async (chunk, coords, colors) => {
     if (!isContextReady()) {
         console.warn("Context is not ready yet.");
@@ -124,7 +110,7 @@ window.setWplaceBotHook = setWplaceBotHook;
 window.setWplaceBotCurrentTileAndPixel = setWplaceBotCurrentTileAndPixel;
 
 const getChunkPixels = async ({ x, y }) => {
-    const response = await fetch(BASE_URL + `/files/s${SESSION}/tiles/${x}/${y}.png`);
+    const response = await fetch(BASE_URL + `/files/s${SESSION}/tiles/${x}/${y}.png?__internal__`);
     if (!response.ok) {
         console.error("Could not fetch the chunk at:", x, y);
         return null;
@@ -202,7 +188,6 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
         return;
     }
     const startPoint = config.startPoint;
-    console.log(startPoint);
     
     try {
         await autoFetchCharges();  
@@ -375,7 +360,7 @@ const startWplaceBot = async ({ width, height }, indicesArray) => {
             await autoFetchCharges();
 
             // Wait a bit before sending a request again
-            await sleepForMs(500);
+            await sleepForMs(5000);
         } catch (exception) {
             console.error(exception);
             await sleepForMs(5000);

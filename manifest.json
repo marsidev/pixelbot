@@ -8,7 +8,8 @@
     "webRequestBlocking",
     "webRequestFilterResponse",
     "activeTab",
-    "*://wplace.live/*"
+    "*://wplace.live/*",
+    "*://backend.wplace.live/*"
   ],
   "web_accessible_resources": [
     "./src/hooks.js",

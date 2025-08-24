@@ -149,6 +149,7 @@
             font-size: 10px;
             display: block;
         }
+
         .wplace-bot__left-charges {
             font-size: 12px;
             display: block;
@@ -189,6 +190,25 @@
             background: var(--bg-muted);
             border-radius: 6px;
             padding: 4px 6px;
+        }
+
+        .wplace-bot__input--large {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .wplace-bot__clear-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 2px 6px;
+            transition: transform 0.15s ease;
+        }
+
+        .wplace-bot__clear-btn:hover {
+            transform: scale(1.2);
         }
     </style>
 
@@ -248,10 +268,19 @@
             </label>
         </div>
 
-        <label class="wplace-bot__label" style="flex: 1;">
-            <span>Starting Point</span>
-            <input id="startingPointInput" placeholder="starting point" class="wplace-bot__input" readonly />
-        </label>
+        <div class="wplace-bot__row" style="align-items: center;">
+            <label class="wplace-bot__label" style="flex: 1;">
+                <span>Starting Point</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <input id="startingPointInput" placeholder="starting point"
+                        class="wplace-bot__input wplace-bot__input--large" readonly />
+                    <button id="clearStartingPoint" title="Clear Starting Point"
+                        class="wplace-bot__clear-btn">❌</button>
+                </div>
+            </label>
+        </div>
+
+
 
         <div id="advancedHeader" class="wplace-bot__advancedHeader">
             <svg id="advancedChev" class="wplace-bot__chev" viewBox="0 0 24 24" style="transform:rotate(-90deg)"
@@ -271,7 +300,7 @@
                 <label class="wplace-bot__label" style="flex:1;flex-direction: row; align-items: center; gap: 6px;">
                     <input id="autoStartId" type="checkbox" style="width:14px;height:14px;" />
                     <span>Auto start</span>
-                </label> 
+                </label>
             </div>
 
             <label class="wplace-bot__label">

@@ -7,7 +7,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 			return;
 		}
 
-		if (url.includes('/_app/immutable/nodes/2.') && url.endsWith('.js')) {
+		if (url.includes('/_app/immutable/nodes/4.') && url.endsWith('.js')) {
 			console.log("Intercepting script");
 
 			const response = await fetch(details.url + "?__internal__");
@@ -128,7 +128,7 @@ chrome.webRequest.onBeforeRequest.addListener(
 			try {
 				const split = details.url.split('/');
 				const tileX = parseInt(split[6]);
-				const tileY = parseInt(split[7].split('.')[0]);
+				const tileY = parseInt(split[7].split('.')[0]);	
 
 				console.log(`Intercepted tile request: x: ${tileX} y: ${tileY}`);
 

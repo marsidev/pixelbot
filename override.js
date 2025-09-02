@@ -39,7 +39,7 @@ function runOverride() {
             const links = Array.from(document.head.getElementsByTagName("link"));
             const overrideScriptSrc = links.filter(link => {
                 const href = link.getAttribute('href');
-                return href.startsWith('./_app/immutable/nodes/2.') && href.endsWith('.js');
+                return href.startsWith('./_app/immutable/nodes/4.') && href.endsWith('.js');
             })[0].getAttribute('href');
             const overrideScriptName = overrideScriptSrc.split('/').pop();
 

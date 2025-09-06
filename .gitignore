@@ -10,4 +10,4 @@ dist
 web-ext-artifacts
 references/
 .env
-.env
+.local

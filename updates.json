@@ -3,7 +3,7 @@
     "{77f8b3dc-31b3-45a7-b5bc-b5bd2d517f4f}": {
       "updates": [
         {
-          "version": "2.0.0",
+          "version": "2.0.1",
           "update_link": "https://github.com/marsidev/pixelbot/releases/latest/download/pixelbot.xpi"
         }
       ]

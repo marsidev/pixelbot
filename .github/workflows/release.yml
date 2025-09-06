@@ -1,14 +1,12 @@
+name: Build and Release Firefox Extension
+
 on:
   push:
-    # Sequence of patterns matched against refs/tags
     tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
-name: Create Release
+      - 'v*'  # Triggers on version tags like v2.0, v2.1, etc.
 
 jobs:
-  build:
-    name: Create Release
+  build-and-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -45,11 +43,9 @@ jobs:
       - name: Build XPI package
         run: pnpm build:xpi
 
-      - name: Create Release
-        id: create_release
-        uses: comnoco/create-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             web-ext-artifacts/pixelbot.xpi
@@ -68,7 +64,5 @@ jobs:
 
             ---
             **Release**: ${{ github.ref_name }}
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

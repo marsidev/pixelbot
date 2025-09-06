@@ -1,0 +1,69 @@
+name: Build and Release Firefox Extension
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v2.0, v2.1, etc.
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install web-ext
+        run: npm install --global web-ext
+
+      - name: Build XPI package
+        run: pnpm build:xpi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            web-ext-artifacts/pixelbot.xpi
+          body: |
+            ## 🦊 Pixelbot Firefox Extension
+
+            Enhanced wplace.live automation with modern UI and advanced features.
+
+            ### 📦 Installation
+            1. Download `pixelbot.xpi`
+            2. Open Firefox → `about:debugging#/runtime/this-firefox`
+            3. Click "Load Temporary Add-on" and select the XPI file
+
+            ### ⚠️ Note
+            For permanent installation, the extension needs to be signed by Mozilla or installed in Firefox Developer Edition.
+
+            ---
+            **Release**: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

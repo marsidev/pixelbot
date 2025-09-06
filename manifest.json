@@ -1,14 +1,15 @@
 {
   "manifest_version": 2,
-  "name": "Wplace Bot",
-  "version": "1.1",
-  "description": "Wplace automation bot",
+  "name": "Pixelbot - Enhanced Wplace Bot",
+  "version": "1.3.0",
+  "description": "Enhanced wplace.live automation tool",
   "permissions": [
     "webRequest",
     "webRequestBlocking",
     "webRequestFilterResponse",
     "activeTab",
-    "*://wplace.live/*"
+    "*://wplace.live/*",
+    "*://backend.wplace.live/*"
   ],
   "web_accessible_resources": [
     "./src/hooks.js",
@@ -19,29 +20,24 @@
     "96": "images/icon96.png"
   },
   "background": {
-    "scripts": [
-      "background.js"
-    ],
-    "type": "module"
+    "scripts": ["dist/override.js", "background.js"]
   },
   "content_scripts": [
     {
-      "matches": [
-        "*://wplace.live/*"
-      ],
-      "js": [
-        "remove-service-worker.js"
-      ],
+      "matches": ["*://wplace.live/*"],
+      "js": ["remove-service-worker.js"],
       "run_at": "document_start"
     },
     {
-      "matches": [
-        "*://wplace.live/*"
-      ],
-      "js": [
-        "injector.js"
-      ],
+      "matches": ["*://wplace.live/*"],
+      "js": ["injector.js"],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{77f8b3dc-31b3-45a7-b5bc-b5bd2d517f4f}",
+      "update_url": "https://raw.githubusercontent.com/marsidev/pixelbot/main/updates.json"
+    }
+  }
 }

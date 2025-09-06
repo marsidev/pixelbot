@@ -2,8 +2,12 @@ node_modules
 wplace.live
 .DS_Store
 .vscode
+.cursor
 *.xpi
 .web-extension-id
 .amo-upload-uuid
 dist
 web-ext-artifacts
+references/
+.env
+.env
